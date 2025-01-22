@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "bugdetectiveai"
+version = "0.1.0"
+description = "multiple LLMs to eval over buggy code"
+authors = ["FernandoZanchitta <fernandozanchitta@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pandas = "^2.2.3"
+patool = "^3.1.0"
+ollama = "^0.4.7"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
