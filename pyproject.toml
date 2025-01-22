@@ -7,9 +7,10 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-pandas = "^2.2.3"
 patool = "^3.1.0"
 ollama = "^0.4.7"
+pandas = "1.5.3"
+numpy = "1.23.2"
 
 
 [build-system]
