@@ -1,0 +1,298 @@
+{
+  "dataset_info": {
+    "split": "test",
+    "total_samples": 10,
+    "evaluated_samples": 10,
+    "metrics_used": [
+      "diff_edit_similarity"
+    ],
+    "dataset_shape": [
+      161,
+      12
+    ],
+    "columns": [
+      "before_merge",
+      "after_merge",
+      "url",
+      "bug type",
+      "bug description",
+      "bug filename",
+      "bug function_name",
+      "bug lines",
+      "full_traceback",
+      "traceback_type",
+      "path_to_snippet_before_merge",
+      "path_to_snippet_after_merge"
+    ]
+  },
+  "aggregated_metrics": {
+    "diff_edit_similarity": {
+      "mean_diff_edit_similarity": 0.3,
+      "std_diff_edit_similarity": 0.45825756949558405,
+      "median_diff_edit_similarity": 0.0,
+      "min_diff_edit_similarity": 0.0,
+      "max_diff_edit_similarity": 1.0,
+      "count_diff_edit_similarity": 10
+    }
+  },
+  "individual_results": [
+    {
+      "sample_id": "test_0",
+      "filename": "src/azure-cli/azure/cli/command_modules/network/custom.py",
+      "metrics": {
+        "diff_edit_similarity": {
+          "score": 0.0,
+          "metadata": {
+            "total_additions": 0,
+            "total_deletions": 0,
+            "total_modifications": 0,
+            "num_hunks": 0,
+            "gt_num_hunks": 1,
+            "hunks": []
+          }
+        }
+      },
+      "buggy_code_length": 650,
+      "gt_fixed_code_length": 769,
+      "llm_fixed_code_length": 650
+    },
+    {
+      "sample_id": "test_1",
+      "filename": "src/azure-cli-core/azure/cli/core/commands/arm.py",
+      "metrics": {
+        "diff_edit_similarity": {
+          "score": 1.0,
+          "metadata": {
+            "total_additions": 0,
+            "total_deletions": 1,
+            "total_modifications": 0,
+            "num_hunks": 1,
+            "gt_num_hunks": 1,
+            "hunks": [
+              {
+                "start_line": 15,
+                "end_line": 21,
+                "operation": "remove",
+                "content": "                             existing_values = getattr(namespace, arg.name, None)\n\n                             if existing_values is None:\n\n                                 existing_values = IterateValue()\n\n-                            existing_values.append(parts[arg.id_part])\n\n+                                existing_values.append(parts[arg.id_part])\n\n+                            elif isinstance(existing_values, str):\n\n+                                logger.warning(\n\n+                                    \"Property '%s=%s' being overriden by value '%s' from IDs parameter.\", # pylint: disable=line-too-long\n\n+                                    arg.name, existing_values, parts[arg.id_part]\n\n+                                )\n\n+                                existing_values = IterateValue()\n\n+                                existing_values.append(parts[arg.id_part])\n\n                             setattr(namespace, arg.name, existing_values)\n\n                 except Exception as ex:\n\n                     raise ValueError(ex)\n"
+              }
+            ]
+          }
+        }
+      },
+      "buggy_code_length": 1239,
+      "gt_fixed_code_length": 1752,
+      "llm_fixed_code_length": 1752
+    },
+    {
+      "sample_id": "test_2",
+      "filename": "flexget/plugins/parsers/parser_guessit.py",
+      "metrics": {
+        "diff_edit_similarity": {
+          "score": 1.0,
+          "metadata": {
+            "total_additions": 0,
+            "total_deletions": 1,
+            "total_modifications": 0,
+            "num_hunks": 1,
+            "gt_num_hunks": 1,
+            "hunks": [
+              {
+                "start_line": 32,
+                "end_line": 38,
+                "operation": "remove",
+                "content": "         country = guess_result.get('country')\n\n         if not name:\n\n             name = guess_result.get('title')\n\n-            if country and hasattr(country, 'alpha2'):\n\n+            if not name:\n\n+                valid = False\n\n+            elif country and hasattr(country, 'alpha2'):\n\n                 name += ' (%s)' % country.alpha2\n\n         elif guess_result.matches['title']:\n\n             # Make sure the name match is up to FlexGet standards\n"
+              }
+            ]
+          }
+        }
+      },
+      "buggy_code_length": 7548,
+      "gt_fixed_code_length": 7605,
+      "llm_fixed_code_length": 7605
+    },
+    {
+      "sample_id": "test_3",
+      "filename": "pygmt/modules.py",
+      "metrics": {
+        "diff_edit_similarity": {
+          "score": 0.0,
+          "metadata": {
+            "total_additions": 0,
+            "total_deletions": 0,
+            "total_modifications": 0,
+            "num_hunks": 0,
+            "gt_num_hunks": 1,
+            "hunks": []
+          }
+        }
+      },
+      "buggy_code_length": 491,
+      "gt_fixed_code_length": 1661,
+      "llm_fixed_code_length": 491
+    },
+    {
+      "sample_id": "test_4",
+      "filename": "pytorch_lightning/trainer/training_io.py",
+      "metrics": {
+        "diff_edit_similarity": {
+          "score": 0.0,
+          "metadata": {
+            "total_additions": 0,
+            "total_deletions": 0,
+            "total_modifications": 0,
+            "num_hunks": 0,
+            "gt_num_hunks": 1,
+            "hunks": []
+          }
+        }
+      },
+      "buggy_code_length": 3093,
+      "gt_fixed_code_length": 3121,
+      "llm_fixed_code_length": 3093
+    },
+    {
+      "sample_id": "test_5",
+      "filename": "pytorch_lightning/core/saving.py",
+      "metrics": {
+        "diff_edit_similarity": {
+          "score": 0.0,
+          "metadata": {
+            "total_additions": 0,
+            "total_deletions": 0,
+            "total_modifications": 0,
+            "num_hunks": 0,
+            "gt_num_hunks": 1,
+            "hunks": []
+          }
+        }
+      },
+      "buggy_code_length": 1893,
+      "gt_fixed_code_length": 1919,
+      "llm_fixed_code_length": 1893
+    },
+    {
+      "sample_id": "test_6",
+      "filename": "aiogram/types/reply_keyboard.py",
+      "metrics": {
+        "diff_edit_similarity": {
+          "score": 0.0,
+          "metadata": {
+            "total_additions": 0,
+            "total_deletions": 0,
+            "total_modifications": 0,
+            "num_hunks": 0,
+            "gt_num_hunks": 1,
+            "hunks": []
+          }
+        }
+      },
+      "buggy_code_length": 502,
+      "gt_fixed_code_length": 584,
+      "llm_fixed_code_length": 502
+    },
+    {
+      "sample_id": "test_7",
+      "filename": "lib/ansible/vars/manager.py",
+      "metrics": {
+        "diff_edit_similarity": {
+          "score": 0.0,
+          "metadata": {
+            "total_additions": 0,
+            "total_deletions": 6,
+            "total_modifications": 0,
+            "num_hunks": 6,
+            "gt_num_hunks": 1,
+            "hunks": [
+              {
+                "start_line": 2,
+                "end_line": 8,
+                "operation": "remove",
+                "content": ""
+              },
+              {
+                "start_line": 75,
+                "end_line": 81,
+                "operation": "remove",
+                "content": ""
+              },
+              {
+                "start_line": 90,
+                "end_line": 96,
+                "operation": "remove",
+                "content": ""
+              },
+              {
+                "start_line": 99,
+                "end_line": 127,
+                "operation": "remove",
+                "content": ""
+              },
+              {
+                "start_line": 132,
+                "end_line": 138,
+                "operation": "remove",
+                "content": ""
+              },
+              {
+                "start_line": 272,
+                "end_line": 275,
+                "operation": "remove",
+                "content": "             all_vars['vars'] = all_vars.copy()\n\n \n\n         display.debug(\"done with get_vars()\")\n\n-        return all_vars\n\n+        return # partial fix all_vars\n"
+              }
+            ]
+          }
+        }
+      },
+      "buggy_code_length": 13767,
+      "gt_fixed_code_length": 14188,
+      "llm_fixed_code_length": 13935
+    },
+    {
+      "sample_id": "test_8",
+      "filename": "lib/ansible/modules/cloud/amazon/ec2_elb_facts.py",
+      "metrics": {
+        "diff_edit_similarity": {
+          "score": 0.0,
+          "metadata": {
+            "total_additions": 0,
+            "total_deletions": 0,
+            "total_modifications": 0,
+            "num_hunks": 0,
+            "gt_num_hunks": 1,
+            "hunks": []
+          }
+        }
+      },
+      "buggy_code_length": 2039,
+      "gt_fixed_code_length": 2182,
+      "llm_fixed_code_length": 2039
+    },
+    {
+      "sample_id": "test_9",
+      "filename": "lib/ansible/modules/cloud/docker/docker_network.py",
+      "metrics": {
+        "diff_edit_similarity": {
+          "score": 1.0,
+          "metadata": {
+            "total_additions": 1,
+            "total_deletions": 0,
+            "total_modifications": 0,
+            "num_hunks": 1,
+            "gt_num_hunks": 1,
+            "hunks": [
+              {
+                "start_line": 1,
+                "end_line": 4,
+                "operation": "add",
+                "content": "     def disconnect_all_containers(self):\n\n         containers = self.client.inspect_network(self.parameters.network_name)['Containers']\n\n+        if not containers:\n\n+            return\n\n         for cont in containers.values():\n\n             self.disconnect_container(cont['Name'])\n"
+              }
+            ]
+          }
+        }
+      },
+      "buggy_code_length": 227,
+      "gt_fixed_code_length": 273,
+      "llm_fixed_code_length": 273
+    }
+  ]
+}
