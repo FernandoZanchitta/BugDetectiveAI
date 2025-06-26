@@ -3,6 +3,7 @@ Schema definitions for structured output in BugDetectiveAI.
 """
 
 from typing import Dict, Any
+from dataclasses import dataclass
 
 
 class BugAnalysisSchema:
