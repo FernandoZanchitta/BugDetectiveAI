@@ -5,7 +5,10 @@ OpenAI LLM model implementation with structured output capabilities.
 import json
 from typing import Dict, Any, Optional
 from .base_model import BaseLLMModel, ModelConfig, StructuredOutput
+import openai
+import os
 
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 class OpenAILLMModel(BaseLLMModel):
     """OpenAI LLM model implementation."""
@@ -38,6 +41,9 @@ class OpenAILLMModel(BaseLLMModel):
         """Generate structured output using OpenAI function calling."""
         try:
             await self._initialize_client()
+            
+            if self.client is None:
+                raise RuntimeError("OpenAI client not initialized")
             
             response = await self.client.chat.completions.create(
                 model=self.config.model_name,
@@ -75,6 +81,9 @@ class OpenAILLMModel(BaseLLMModel):
         try:
             await self._initialize_client()
             
+            if self.client is None:
+                raise RuntimeError("OpenAI client not initialized")
+            
             response = await self.client.chat.completions.create(
                 model=self.config.model_name,
                 messages=[{"role": "user", "content": prompt}],
@@ -82,7 +91,54 @@ class OpenAILLMModel(BaseLLMModel):
                 max_tokens=self.config.max_tokens
             )
             
-            return response.choices[0].message.content
+            content = response.choices[0].message.content
+            if content is None:
+                raise RuntimeError("No content returned from OpenAI API")
+            
+            return content
             
         except Exception as e:
             raise RuntimeError(f"OpenAI API error: {str(e)}") 
+
+
+def evaluate_correction(prompt, buggy_code, traceback_error, retrieved_examples=None, model="gpt-4"):
+    """Evaluate an LLM's ability to correct a piece of code.
+    
+    Args:
+        prompt (str): The instruction prompt for the LLM.
+        buggy_code (str): The original buggy code.
+        traceback_error (str): The traceback error associated with the code.
+        retrieved_examples (list of dict): List of examples in the form 
+            [{"buggy_code": str, "corrected_code": str}], optional.
+        model (str): The LLM model to use.
+    Returns:
+        str: The corrected code returned by the LLM.
+    """
+    # Build the final prompt
+    message_parts = []
+    message_parts.append(prompt)
+    message_parts.append("\n### BUGGY CODE:\n" + buggy_code)
+    message_parts.append("\n### ERROR:\n" + traceback_error)
+
+    if retrieved_examples:
+        examples_str = ""
+        for ex in retrieved_examples:
+            examples_str += (
+                "#### EXAMPLE:\n"
+                f"Buggy:\n{ex['buggy_code']}\nCorrected:\n{ex['corrected_code']}\n\n"
+            )
+        message_parts.append("\n### RETRIEVED EXAMPLES:\n" + examples_str)
+
+    message_parts.append("\n### RETURN ONLY THE CORRECTED CODE BELOW:\n")
+
+    final_message = "\n".join(message_parts)
+
+    # Call the LLM
+    response = openai.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": final_message}],
+        temperature=0,
+    )
+    corrected_code = response.choices[0].message.content
+
+    return corrected_code
