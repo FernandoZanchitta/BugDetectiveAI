@@ -1,5 +1,5 @@
 """
-OpenAI LLM model implementation for BugDetectiveAI.
+OpenRouter LLM model implementation for BugDetectiveAI.
 """
 
 import json
@@ -8,25 +8,26 @@ from typing import Dict, Any, Optional
 from .base_model import BaseLLMModel, ModelConfig, StructuredOutput
 
 
-class OpenAILLMModel(BaseLLMModel):
-    """OpenAI LLM model implementation for code generation."""
+class OpenRouterLLMModel(BaseLLMModel):
+    """OpenRouter LLM model implementation for code generation."""
     
     def __init__(self, config: ModelConfig):
         super().__init__(config)
+        self.api_key = config.api_key or os.getenv("OPEN_ROUTER_KEY")
         self.client = None
     
     def validate_config(self) -> bool:
-        """Validate OpenAI configuration."""
-        return bool(self.config.api_key and self.config.model_name)
+        """Validate OpenRouter configuration."""
+        return bool(self.api_key and self.config.model_name)
     
     async def _initialize_client(self):
-        """Initialize OpenAI client."""
+        """Initialize OpenAI client with OpenRouter base URL."""
         if not self.client:
             try:
                 import openai
                 self.client = openai.AsyncOpenAI(
-                    api_key=self.config.api_key,
-                    base_url=self.config.base_url
+                    api_key=self.api_key,
+                    base_url="https://openrouter.ai/api/v1"
                 )
             except ImportError:
                 raise ImportError("OpenAI package not installed. Run: poetry add openai")
@@ -55,7 +56,7 @@ IMPORTANT: Return ONLY the corrected/requested code. Do not include any explanat
             
             content = response.choices[0].message.content
             if content is None:
-                raise RuntimeError("No content returned from OpenAI API")
+                raise RuntimeError("No content returned from OpenRouter API")
             
             # Clean the response to ensure it's just code
             cleaned_content = self._extract_code_only(content)
@@ -63,7 +64,7 @@ IMPORTANT: Return ONLY the corrected/requested code. Do not include any explanat
             return cleaned_content
             
         except Exception as e:
-            raise RuntimeError(f"OpenAI API error: {str(e)}")
+            raise RuntimeError(f"OpenRouter API error: {str(e)}")
     
     def _extract_code_only(self, content: str) -> str:
         """Extract only code from the response, removing explanations and markdown."""
@@ -170,22 +171,22 @@ IMPORTANT: Return ONLY the corrected/requested code. Do not include any explanat
         return await self.generate_code_output(prompt)
 
 
-def create_openai_model(
-    model_name: str = "gpt-4",
+def create_openrouter_model(
+    model_name: str = "anthropic/claude-3.5-sonnet",
     api_key: Optional[str] = None,
     temperature: float = 0.0,
     max_tokens: Optional[int] = None
-) -> OpenAILLMModel:
-    """Create an OpenAI model instance for code generation.
+) -> OpenRouterLLMModel:
+    """Create an OpenRouter model instance for code generation.
     
     Args:
-        model_name: The model to use (e.g., 'gpt-4', 'gpt-3.5-turbo')
-        api_key: OpenAI API key (will use env var if not provided)
+        model_name: The model to use (e.g., 'anthropic/claude-3.5-sonnet', 'openai/gpt-4')
+        api_key: OpenRouter API key (will use env var if not provided)
         temperature: Sampling temperature (default 0.0 for consistent code generation)
         max_tokens: Maximum tokens to generate
     
     Returns:
-        OpenAILLMModel instance optimized for code generation
+        OpenRouterLLMModel instance optimized for code generation
     """
     config = ModelConfig(
         model_name=model_name,
@@ -193,4 +194,7 @@ def create_openai_model(
         temperature=temperature,
         max_tokens=max_tokens
     )
-    return OpenAILLMModel(config)
+    return OpenRouterLLMModel(config)
+
+
+
