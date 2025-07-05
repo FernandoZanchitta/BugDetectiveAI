@@ -2,10 +2,11 @@
 Checkpoint utilities for BugDetectiveAI.
 Provides robust checkpoint saving and loading functionality.
 """
-
+import os
 import json
 from pathlib import Path
 from typing import List, Dict, Any
+
 
 
 def get_checkpoint_path(dataset_name: str) -> Path:
@@ -17,7 +18,8 @@ def get_checkpoint_path(dataset_name: str) -> Path:
     Returns:
         Path to the checkpoint file
     """
-    checkpoint_dir = Path("data/checkpoints")
+    project_path = os.environ.get("PROJECT_PATH")
+    checkpoint_dir = Path(f"{project_path}/Bugdetectiveai/data/checkpoints")
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     return checkpoint_dir / f"{dataset_name}_responses.json"
 
@@ -65,7 +67,8 @@ def list_checkpoints() -> List[str]:
     Returns:
         List of dataset names that have checkpoints
     """
-    checkpoint_dir = Path("data/checkpoints")
+    project_path = os.environ.get("PROJECT_PATH")
+    checkpoint_dir = Path(f"{project_path}/Bugdetectiveai/data/checkpoints")
     if not checkpoint_dir.exists():
         return []
     
@@ -132,7 +135,8 @@ def clear_all_checkpoints() -> int:
     Returns:
         Number of checkpoints deleted
     """
-    checkpoint_dir = Path("data/checkpoints")
+    project_path = os.environ.get("PROJECT_PATH")
+    checkpoint_dir = Path(f"{project_path}/Bugdetectiveai/data/checkpoints")
     if not checkpoint_dir.exists():
         return 0
     
