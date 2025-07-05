@@ -2,10 +2,16 @@
 Tests for tqdm progress monitoring features.
 """
 
+import sys
+import os
 import unittest
 import asyncio
 import pandas as pd
 from unittest.mock import AsyncMock, patch, MagicMock
+
+# Add the parent directory to the path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
 from llm_models.open_router import OpenRouterLLMModel, create_openrouter_model
 from llm_models.base_model import ModelConfig
 from bug_detective.detective import process_prompt_dataset
@@ -36,24 +42,11 @@ class TestProgressMonitoring(unittest.TestCase):
         mock_response.choices[0].message.content = "def test():\n    return True"
         mock_client.chat.completions.create.return_value = mock_response
         
-        # Test with progress monitoring enabled
-        with patch('builtins.print') as mock_print:
-            result = await self.model.generate_code_output(
-                "Write a test function", 
-                show_progress=True
-            )
-        
-        # Verify progress messages were printed
-        expected_messages = [
-            "🔄 Initializing OpenRouter client...",
-            "📝 Building enhanced prompt...",
-            "🚀 Generating code with model: test-model",
-            "🧹 Cleaning and extracting code...",
-            "✅ Code generation completed!"
-        ]
-        
-        for msg in expected_messages:
-            mock_print.assert_any_call(msg)
+        # Test with progress monitoring enabled (no print statements expected)
+        result = await self.model.generate_code_output(
+            "Write a test function", 
+            show_progress=True
+        )
         
         # Verify the result
         self.assertIn("def test()", result)

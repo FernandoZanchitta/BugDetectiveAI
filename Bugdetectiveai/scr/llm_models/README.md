@@ -80,16 +80,11 @@ print(response)
 
 ### Progress Monitoring
 
-The OpenRouter model includes built-in progress monitoring using tqdm:
+The OpenRouter model includes clean progress monitoring using tqdm:
 
 ```python
-# Individual code generation with step-by-step progress
+# Individual code generation (no verbose output)
 result = await model.generate_code_output(prompt, show_progress=True)
-# Shows: 🔄 Initializing OpenRouter client...
-#        📝 Building enhanced prompt...
-#        🚀 Generating code with model: anthropic/claude-3.5-sonnet
-#        🧹 Cleaning and extracting code...
-#        ✅ Code generation completed!
 
 # Batch processing with progress bar
 prompts = ["prompt1", "prompt2", "prompt3"]
