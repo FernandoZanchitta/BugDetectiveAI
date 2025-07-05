@@ -1,76 +1,55 @@
 """
-Basic usage example for BugDetectiveAI.
+Basic usage example for BugDetectiveAI with checkpoint support.
 """
 
 import asyncio
-import os
-
-from ..llm_models.base_model import ModelConfig
-from ..llm_models.open_router import OpenRouterLLMModel
-from ..bug_detective.detective import BugDetective
+import pandas as pd
+from llm_models.open_router import create_openrouter_model
+from bug_detective.detective import process_prompt_dataset
+from utils.checkpoints import list_checkpoints, delete_checkpoint
 
 
 async def main():
-    """Basic example using OpenRouter."""
-    print("BugDetectiveAI - Basic Example")
-    print("=" * 30)
+    """Example usage with checkpoint support."""
     
-    # Check for API key
-    api_key = os.getenv("OPEN_ROUTER_KEY")
-    if not api_key:
-        print("❌ Please set OPEN_ROUTER_KEY environment variable")
-        return
+    # Create sample dataset
+    sample_data = {
+        'before_merge': [
+            'def add(a, b):\n    return a + b\n',
+            'def multiply(x, y):\n    return x * y\n'
+        ],
+        'full_traceback': [
+            'TypeError: unsupported operand type(s) for +: \'int\' and \'str\'',
+            'NameError: name \'x\' is not defined'
+        ]
+    }
     
-    # Configure model
-    config = ModelConfig(
+    df = pd.DataFrame(sample_data)
+    
+    # Create model
+    model = create_openrouter_model(
         model_name="anthropic/claude-3.5-sonnet",
-        temperature=0.1,
-        api_key=api_key
+        temperature=0.0
     )
     
-    # Initialize model and detective
-    model = OpenRouterLLMModel(config)
-    detective = BugDetective(model)
+    # Process with checkpoint support
+    print("Processing dataset with checkpoint support...")
+    responses = await process_prompt_dataset(
+        open_router_model=model,
+        prompt_dataset=df,
+        dataset_name="example_dataset",  # Custom name for checkpoint
+        save_frequency=2  # Save every 2 samples
+    )
     
-    # Sample buggy code
-    buggy_code = """
-    def divide(a, b):
-        return a / b  # No division by zero check
-    """
+    print(f"\nGenerated {len(responses)} responses:")
+    for i, response in enumerate(responses):
+        print(f"Sample {i+1}: {response[:100]}...")
     
-    print("Analyzing code...")
-    print(f"Code: {buggy_code.strip()}")
+    # List available checkpoints
+    print(f"\nAvailable checkpoints: {list_checkpoints()}")
     
-    # Analyze with basic schema
-    result = await detective.analyze_bug(buggy_code, concise=False)
-    
-    if result.success:
-        print("\n✅ Analysis successful!")
-        print(f"Bug Type: {result.bug_analysis['bug_type']}")
-        print(f"Severity: {result.bug_analysis['severity']}")
-        print(f"Description: {result.bug_analysis['description']}")
-        print(f"Location: {result.bug_analysis['location']}")
-    else:
-        print(f"\n❌ Analysis failed: {result.error_message}")
-    
-    # Analyze with concise schema
-    print("\n" + "=" * 30)
-    print("Analyzing with concise schema...")
-    
-    result = await detective.analyze_bug(buggy_code, concise=True)
-    
-    if result.success:
-        print("✅ Analysis successful!")
-        print(f"Bug Type: {result.bug_analysis['bug_type']}")
-        print(f"Severity: {result.bug_analysis['severity']}")
-        print(f"Description: {result.bug_analysis['description']}")
-        print(f"Location: {result.bug_analysis['location']}")
-        if 'suggested_fix' in result.bug_analysis:
-            print(f"Suggested Fix: {result.bug_analysis['suggested_fix']}")
-        if 'confidence' in result.bug_analysis:
-            print(f"Confidence: {result.bug_analysis['confidence']}")
-    else:
-        print(f"❌ Analysis failed: {result.error_message}")
+    # Example: Delete checkpoint if needed
+    # delete_checkpoint("example_dataset")
 
 
 if __name__ == "__main__":
