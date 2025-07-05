@@ -12,7 +12,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from llm_models.base_model import ModelConfig
-from llm_models.openai_model import OpenAILLMModel
+from llm_models.open_router import OpenRouterLLMModel
 from bug_detective.detective import BugDetective
 
 
@@ -22,21 +22,21 @@ async def run_single_test():
     print("=" * 40)
     
     # Check for API key
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("OPEN_ROUTER_KEY")
     if not api_key:
-        print("❌ Error: OPENAI_API_KEY environment variable not set")
-        print("Please set it with: export OPENAI_API_KEY='your-key-here'")
+        print("❌ Error: OPEN_ROUTER_KEY environment variable not set")
+        print("Please set it with: export OPEN_ROUTER_KEY='your-key-here'")
         return False
     
     # Configure model
     config = ModelConfig(
-        model_name="gpt-4",
+        model_name="anthropic/claude-3.5-sonnet",
         temperature=0.1,
         api_key=api_key
     )
     
     # Initialize model and detective
-    model = OpenAILLMModel(config)
+    model = OpenRouterLLMModel(config)
     detective = BugDetective(model)
     
     # Single test sample - a classic division by zero bug

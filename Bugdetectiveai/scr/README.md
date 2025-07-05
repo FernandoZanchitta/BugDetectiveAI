@@ -1,6 +1,6 @@
 # BugDetectiveAI - Structured Output
 
-A simple, focused implementation for bug detection using OpenAI with structured output.
+A simple, focused implementation for bug detection using OpenRouter with structured output.
 
 ## Directory Structure
 
@@ -9,7 +9,7 @@ scr/
 ├── llm_models/           # LLM model implementations
 │   ├── __init__.py
 │   ├── base_model.py     # Abstract base class
-│   └── openai_model.py   # OpenAI implementation
+│   └── open_router.py    # OpenRouter implementation
 ├── structured_output/    # Structured output system
 │   ├── __init__.py
 │   ├── schemas.py        # Schema definitions
@@ -24,7 +24,7 @@ scr/
 
 ## Features
 
-- **OpenAI Integration**: Uses function calling for structured output
+- **OpenRouter Integration**: Uses function calling for structured output
 - **Basic & Concise Schemas**: Two levels of detail for bug analysis
 - **Simple API**: Easy to use with minimal setup
 
@@ -33,17 +33,17 @@ scr/
 ```python
 import asyncio
 from Bugdetectiveai.scr.llm_models.base_model import ModelConfig
-from Bugdetectiveai.scr.llm_models.openai_model import OpenAILLMModel
+from Bugdetectiveai.scr.llm_models.open_router import OpenRouterLLMModel
 from Bugdetectiveai.scr.bug_detective.detective import BugDetective
 
 async def main():
     config = ModelConfig(
-        model_name="gpt-4",
+        model_name="anthropic/claude-3.5-sonnet",
         temperature=0.1,
-        api_key="your-openai-api-key"
+        api_key="your-openrouter-api-key"
     )
     
-    model = OpenAILLMModel(config)
+    model = OpenRouterLLMModel(config)
     detective = BugDetective(model)
     
     code = """
@@ -93,7 +93,7 @@ pip install openai
 
 2. Set environment variable:
 ```bash
-export OPENAI_API_KEY="your-key"
+export OPEN_ROUTER_KEY="your-key"
 ```
 
 3. Run example:

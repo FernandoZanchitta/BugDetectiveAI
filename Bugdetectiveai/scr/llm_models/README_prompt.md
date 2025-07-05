@@ -123,7 +123,7 @@ Template files should have `.jinja` extension and be placed in the template dire
 
 ## Integration with Existing Code
 
-The module is designed to be a drop-in replacement for the existing prompt construction in `openai_model.py`. The `evaluate_correction` function now uses the new prompt builder while maintaining the same interface.
+The module is designed to be a drop-in replacement for the existing prompt construction in `open_router.py`. The `evaluate_correction` function now uses the new prompt builder while maintaining the same interface.
 
 ## Testing
 

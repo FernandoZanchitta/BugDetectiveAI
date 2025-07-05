@@ -43,7 +43,7 @@ OpenRouter provides access to models from multiple providers:
 - `anthropic/claude-3.5-haiku`
 - `anthropic/claude-3-opus`
 
-### OpenAI Models
+### OpenAI Models (via OpenRouter)
 - `openai/gpt-4`
 - `openai/gpt-4-turbo`
 - `openai/gpt-3.5-turbo`
@@ -105,7 +105,7 @@ from llm_models.open_router import OpenRouterLLMModel
 
 # Create custom configuration
 config = ModelConfig(
-    model_name="openai/gpt-4",
+    model_name="anthropic/claude-3.5-sonnet",
     api_key="your_api_key",  # Optional if using env var
     temperature=0.2,
     max_tokens=1000
@@ -222,7 +222,7 @@ results = await process_prompt_dataset(model, df)
 - **Code Analysis**: `anthropic/claude-3.5-sonnet` (best performance)
 - **Data Processing**: `anthropic/claude-3.5-haiku` (faster, cheaper)
 - **Quick Tests**: `meta-llama/llama-3.1-8b-instruct` (very cheap)
-- **High Accuracy**: `openai/gpt-4` (most expensive but highest quality)
+- **High Accuracy**: `anthropic/claude-3.5-sonnet` (most expensive but highest quality)
 
 ### Temperature Settings
 

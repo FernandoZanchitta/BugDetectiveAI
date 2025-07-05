@@ -13,7 +13,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 # Import all test modules
 from test_base_model import TestModelConfig, TestStructuredOutput, TestBaseLLMModel
-from test_openai_model import TestOpenAILLMModel
 from test_bug_detective import TestBugDetective, TestDetectionResult
 from test_structured_output import (
     TestStructuredOutputProcessor, 
@@ -71,7 +70,6 @@ async def run_async_tests():
     
     # Add async test classes
     async_test_classes = [
-        TestOpenAILLMModel,
         TestBugDetective,
         TestBugDetectiveIntegration,
         TestEndToEndWorkflow,
@@ -99,7 +97,8 @@ def run_specific_test_category(category):
     if category == "base":
         test_classes = [TestModelConfig, TestStructuredOutput, TestBaseLLMModel]
     elif category == "openai":
-        test_classes = [TestOpenAILLMModel]
+        print("OpenAI tests have been removed - using OpenRouter only")
+        return None
     elif category == "detective":
         test_classes = [TestBugDetective, TestDetectionResult]
     elif category == "structured":
@@ -162,7 +161,7 @@ def main():
     # Check command line arguments
     if len(sys.argv) > 1:
         category = sys.argv[1].lower()
-        if category in ["base", "openai", "detective", "structured", "integration", "metrics"]:
+        if category in ["base", "detective", "structured", "integration", "metrics"]:
             result = run_specific_test_category(category)
             if result:
                 success = len(result.failures) + len(result.errors) == 0
@@ -170,7 +169,7 @@ def main():
             return
         else:
             print(f"Unknown test category: {category}")
-            print("Available categories: base, openai, detective, structured, integration, metrics")
+            print("Available categories: base, detective, structured, integration, metrics")
             return
     
     # Run all tests

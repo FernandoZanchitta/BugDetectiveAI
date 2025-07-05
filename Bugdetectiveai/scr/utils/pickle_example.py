@@ -3,7 +3,7 @@ Simple example of using pickle utilities for saving and loading DataFrames.
 """
 
 import pandas as pd
-from pickle_utils import save_data, load_data
+from data_loader.loader import save_data, load_data
 
 
 def example_usage():

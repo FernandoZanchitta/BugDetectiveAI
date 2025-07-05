@@ -61,20 +61,11 @@ def run_simple_async_tests():
     print("RUNNING SIMPLE ASYNC TESTS")
     print("=" * 60)
     
-    # Import test modules
-    from test_openai_model import TestOpenAILLMModel
+    # No async tests for now - removed OpenAI tests
+    print("No async tests to run")
     
-    # Create test suite
+    # Create empty test suite
     suite = unittest.TestSuite()
-    
-    # Add async test classes (only the ones that work)
-    async_test_classes = [
-        TestOpenAILLMModel,
-    ]
-    
-    for test_class in async_test_classes:
-        tests = unittest.TestLoader().loadTestsFromTestCase(test_class)
-        suite.addTests(tests)
     
     # Run tests
     runner = unittest.TextTestRunner(verbosity=2)

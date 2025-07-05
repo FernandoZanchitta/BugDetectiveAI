@@ -8,8 +8,9 @@ from pickle files and return pandas DataFrames.
 import os
 import pickle
 import pandas as pd
-from typing import Optional, Dict, List, Tuple
+from typing import Optional, Dict, List, Tuple, Any
 from pathlib import Path
+from datetime import datetime
 
 
 def get_dataset_paths(base_path: Optional[str] = None) -> Dict[str, str]:
@@ -74,6 +75,87 @@ def load_pickle_file(file_path: str) -> pd.DataFrame:
             
     except Exception as e:
         raise ValueError(f"Error loading pickle file {file_path}: {str(e)}")
+
+
+def save_pickle_file(df: pd.DataFrame, file_path: str) -> str:
+    """
+    Save a DataFrame to a pickle file.
+    
+    Args:
+        df: DataFrame to save
+        file_path: Path where to save the file
+        
+    Returns:
+        Path to the saved file
+    """
+    # Create directory if it doesn't exist
+    Path(file_path).parent.mkdir(parents=True, exist_ok=True)
+    
+    # Save DataFrame
+    with open(file_path, 'wb') as f:
+        pickle.dump(df, f)
+    
+    print(f"Data saved to: {file_path}")
+    return file_path
+
+
+def save_data(df: pd.DataFrame, file_name: Optional[str] = None, data_path: Optional[str] = None) -> str:
+    """
+    Save a DataFrame to pickle file with automatic naming.
+    
+    Args:
+        df: DataFrame to save
+        file_name: Name of the file (without .pkl extension). 
+                  If None, uses 'data_{current_timestamp}'
+        data_path: Directory to save the file. 
+                  If None, uses default checkpoints directory
+    
+    Returns:
+        Full path to the saved file
+    """
+    # Set default path
+    if data_path is None:
+        data_path = '/Users/zanchitta/Developer/BugDetectiveAI/Bugdetectiveai/data/checkpoints'
+    
+    # Set default filename
+    if file_name is None:
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        file_name = f'data_{timestamp}'
+    
+    # Ensure .pkl extension
+    if not file_name.endswith('.pkl'):
+        file_name += '.pkl'
+    
+    # Full file path
+    file_path = os.path.join(data_path, file_name)
+    
+    return save_pickle_file(df, file_path)
+
+
+def load_data(file_name: str, data_path: Optional[str] = None) -> pd.DataFrame:
+    """
+    Load a DataFrame from pickle file.
+    
+    Args:
+        file_name: Name of the file (with or without .pkl extension)
+        data_path: Directory where the file is located. 
+                  If None, uses default checkpoints directory
+    
+    Returns:
+        Loaded DataFrame
+    """
+    # Set default path
+    if data_path is None:
+        data_path = '/Users/zanchitta/Developer/BugDetectiveAI/Bugdetectiveai/data/checkpoints'
+    
+    # Ensure .pkl extension
+    if not file_name.endswith('.pkl'):
+        file_name += '.pkl'
+    
+    # Full file path
+    file_path = os.path.join(data_path, file_name)
+    
+    return load_pickle_file(file_path)
 
 
 def load_buggy_dataset(split: str = 'test', base_path: Optional[str] = None) -> pd.DataFrame:
@@ -179,7 +261,7 @@ def load_all_datasets(base_path: Optional[str] = None) -> Dict[str, pd.DataFrame
     return datasets
 
 
-def get_dataset_info(df: pd.DataFrame) -> Dict[str, any]:
+def get_dataset_info(df: pd.DataFrame) -> Dict[str, Any]:
     """
     Get information about a loaded dataset.
     
@@ -230,6 +312,7 @@ def filter_dataset_by_length(df: pd.DataFrame,
     # Add length column if it doesn't exist
     length_col = f'{column}_length'
     if length_col not in df.columns:
+        df = df.copy()
         df[length_col] = df[column].str.len()
     
     # Filter by length

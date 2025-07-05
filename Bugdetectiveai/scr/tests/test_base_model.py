@@ -20,24 +20,24 @@ class TestModelConfig(unittest.TestCase):
     def test_basic_config(self):
         """Test basic configuration creation."""
         config = ModelConfig(
-            model_name="gpt-4",
+            model_name="anthropic/claude-3.5-sonnet",
             temperature=0.1,
             max_tokens=1000,
             api_key="test-key",
-            base_url="https://api.openai.com/v1"
+            base_url="https://openrouter.ai/api/v1"
         )
         
-        self.assertEqual(config.model_name, "gpt-4")
+        self.assertEqual(config.model_name, "anthropic/claude-3.5-sonnet")
         self.assertEqual(config.temperature, 0.1)
         self.assertEqual(config.max_tokens, 1000)
         self.assertEqual(config.api_key, "test-key")
-        self.assertEqual(config.base_url, "https://api.openai.com/v1")
+        self.assertEqual(config.base_url, "https://openrouter.ai/api/v1")
     
     def test_default_config(self):
         """Test configuration with default values."""
-        config = ModelConfig(model_name="gpt-3.5-turbo")
+        config = ModelConfig(model_name="anthropic/claude-3.5-sonnet")
         
-        self.assertEqual(config.model_name, "gpt-3.5-turbo")
+        self.assertEqual(config.model_name, "anthropic/claude-3.5-sonnet")
         self.assertEqual(config.temperature, 0.1)  # Default
         self.assertIsNone(config.max_tokens)  # Default
         self.assertIsNone(config.api_key)  # Default

@@ -6,30 +6,30 @@ import asyncio
 import os
 
 from ..llm_models.base_model import ModelConfig
-from ..llm_models.openai_model import OpenAILLMModel
+from ..llm_models.open_router import OpenRouterLLMModel
 from ..bug_detective.detective import BugDetective
 
 
 async def main():
-    """Basic example using OpenAI."""
+    """Basic example using OpenRouter."""
     print("BugDetectiveAI - Basic Example")
     print("=" * 30)
     
     # Check for API key
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("OPEN_ROUTER_KEY")
     if not api_key:
-        print("❌ Please set OPENAI_API_KEY environment variable")
+        print("❌ Please set OPEN_ROUTER_KEY environment variable")
         return
     
     # Configure model
     config = ModelConfig(
-        model_name="gpt-4",
+        model_name="anthropic/claude-3.5-sonnet",
         temperature=0.1,
         api_key=api_key
     )
     
     # Initialize model and detective
-    model = OpenAILLMModel(config)
+    model = OpenRouterLLMModel(config)
     detective = BugDetective(model)
     
     # Sample buggy code

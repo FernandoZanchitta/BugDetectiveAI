@@ -11,7 +11,7 @@ This directory contains comprehensive tests for the BugDetectiveAI project. The 
    - `StructuredOutput` dataclass
    - `BaseLLMModel` abstract class
 
-2. **`test_openai_model.py`** - Tests for OpenAI LLM model implementation
+2. **`test_openai_model.py`** - Tests for OpenAI LLM model implementation (REMOVED)
    - Configuration validation
    - Client initialization
    - Structured output generation
@@ -72,8 +72,8 @@ You can run tests for specific categories:
 # Base model tests
 python run_all_tests.py base
 
-# OpenAI model tests
-python run_all_tests.py openai
+# OpenAI model tests (removed)
+# python run_all_tests.py openai
 
 # BugDetective tests
 python run_all_tests.py detective
@@ -96,8 +96,8 @@ You can also run individual test files:
 # Run base model tests
 python test_base_model.py
 
-# Run OpenAI model tests
-python test_openai_model.py
+# Run OpenAI model tests (removed)
+# python test_openai_model.py
 
 # Run bug detective tests
 python test_bug_detective.py
@@ -117,7 +117,7 @@ python test_integration.py
 - **Metrics Tests**: Diff-based metric calculations and evaluation
 
 ### Asynchronous Tests
-- **OpenAI Model Tests**: API interactions, client management, error handling
+- **OpenRouter Model Tests**: API interactions, client management, error handling
 - **BugDetective Tests**: Main analysis functionality, batch processing
 - **Integration Tests**: End-to-end workflows, error scenarios
 
@@ -181,8 +181,8 @@ test_default_config (test_base_model.TestModelConfig) ... ok
 ============================================================
 RUNNING ASYNCHRONOUS TESTS
 ============================================================
-test_validate_config_valid (test_openai_model.TestOpenAILLMModel) ... ok
-test_generate_structured_output_success (test_openai_model.TestOpenAILLMModel) ... ok
+test_validate_config_valid (test_openrouter_model.TestOpenRouterLLMModel) ... ok
+test_generate_structured_output_success (test_openrouter_model.TestOpenRouterLLMModel) ... ok
 ...
 
 ============================================================

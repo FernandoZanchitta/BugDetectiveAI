@@ -1,9 +1,7 @@
 import ast
 import difflib
-import re
-from collections import Counter
-from sklearn.metrics import precision_score, recall_score, f1_score
-
+from codebleu import calc_codebleu
+from typing import List, Tuple, Dict
 def display_asts(before_code: str, after_code: str) -> None:
     """Display both ASTs side by side for visual comparison.
     
@@ -127,19 +125,11 @@ def get_ngrams(text, n=4):
     """Get character-level n-grams for text."""
     return [text[i:i + n] for i in range(len(text) - n + 1)]
 
-def codebleu(candidate, reference, alpha=0.5, beta=0.5):
-    """Very simplified CodeBLEU focusing on text overlap and keyword match."""
-    # 1. N-gram overlap (similar to BLEU)
-    candidate_ngrams = Counter(get_ngrams(candidate))
-    reference_ngrams = Counter(get_ngrams(reference))
-    common = sum((candidate_ngrams & reference_ngrams).values())
-    total = max(sum(candidate_ngrams.values()), 1)
-    ngram_score = common / total
-
-    # 2. Keyword overlap
-    candidate_keywords = set(re.findall(r'\b\w+\b', candidate)) & PY_KEYWORDS
-    reference_keywords = set(re.findall(r'\b\w+\b', reference)) & PY_KEYWORDS
-    keyword_score = len(candidate_keywords & reference_keywords) / max(len(reference_keywords), 1)
-
-    # Final weighted score
-    return alpha * ngram_score + beta * keyword_score
+def codebleu(candidate: List[str], reference: List[str], weights: Tuple[float, float,float,float] = (0.25, 0.25, 0.25, 0.25)) -> Dict[str, float]:
+    """ Codebleu External Execution """
+    # assert len(candidate) == len(reference)
+    assert len(candidate) == len(reference)
+    assert len(weights) == 4
+    assert sum(weights) == 1.0
+    assert all(w >= 0 for w in weights)
+    return calc_codebleu(reference, candidate, lang="python", weights=weights)
