@@ -4,7 +4,8 @@ OpenRouter LLM model implementation for BugDetectiveAI.
 
 import json
 import os
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
+from tqdm import tqdm
 from .base_model import BaseLLMModel, ModelConfig, StructuredOutput
 
 
@@ -32,13 +33,19 @@ class OpenRouterLLMModel(BaseLLMModel):
             except ImportError:
                 raise ImportError("OpenAI package not installed. Run: poetry add openai")
     
-    async def generate_code_output(self, prompt: str) -> str:
+    async def generate_code_output(self, prompt: str, show_progress: bool = True) -> str:
         """Generate code output only - no explanations or other text."""
         try:
+            if show_progress:
+                print("🔄 Initializing OpenRouter client...")
+            
             await self._initialize_client()
             
             if self.client is None:
                 raise RuntimeError("OpenAI client not initialized")
+            
+            if show_progress:
+                print("📝 Building enhanced prompt...")
             
             # Enhanced prompt to ensure code-only output
             code_prompt = f"""
@@ -46,6 +53,9 @@ class OpenRouterLLMModel(BaseLLMModel):
 
 IMPORTANT: Return ONLY the corrected/requested code. Do not include any explanations, comments about the changes, or other text. Just return the pure code.
 """
+            
+            if show_progress:
+                print(f"🚀 Generating code with model: {self.config.model_name}")
             
             response = await self.client.chat.completions.create(
                 model=self.config.model_name,
@@ -58,12 +68,20 @@ IMPORTANT: Return ONLY the corrected/requested code. Do not include any explanat
             if content is None:
                 raise RuntimeError("No content returned from OpenRouter API")
             
+            if show_progress:
+                print("🧹 Cleaning and extracting code...")
+            
             # Clean the response to ensure it's just code
             cleaned_content = self._extract_code_only(content)
+            
+            if show_progress:
+                print("✅ Code generation completed!")
             
             return cleaned_content
             
         except Exception as e:
+            if show_progress:
+                print(f"❌ Error during code generation: {str(e)}")
             raise RuntimeError(f"OpenRouter API error: {str(e)}")
     
     def _extract_code_only(self, content: str) -> str:
@@ -169,6 +187,52 @@ IMPORTANT: Return ONLY the corrected/requested code. Do not include any explanat
     async def generate_basic_output(self, prompt: str) -> str:
         """Generate basic text output - simplified to use code generation."""
         return await self.generate_code_output(prompt)
+    
+    async def generate_batch_outputs(
+        self, 
+        prompts: List[str], 
+        show_progress: bool = True
+    ) -> List[str]:
+        """
+        Generate outputs for a batch of prompts with progress monitoring.
+        
+        Args:
+            prompts: List of prompts to process
+            show_progress: Whether to show progress bar
+            
+        Returns:
+            List of generated outputs
+        """
+        results = []
+        
+        if show_progress:
+            pbar = tqdm(
+                total=len(prompts),
+                desc="Generating batch outputs",
+                unit="prompts",
+                ncols=100
+            )
+        
+        for i, prompt in enumerate(prompts):
+            try:
+                if show_progress:
+                    pbar.set_description(f"Processing prompt {i + 1}/{len(prompts)}")
+                
+                # Generate output for this prompt
+                output = await self.generate_code_output(prompt, show_progress=False)
+                results.append(output)
+                
+            except Exception as e:
+                error_msg = f"Error processing prompt {i}: {str(e)}"
+                results.append(error_msg)
+            
+            if show_progress:
+                pbar.update(1)
+        
+        if show_progress:
+            pbar.close()
+        
+        return results
 
 
 def create_openrouter_model(

@@ -17,7 +17,7 @@ import pandas as pd
 from typing import List, Dict, Any, Optional
 from metrics import MetricsEvaluator, create_evaluator, DiffBasedMetric
 from data_loader.loader import load_buggy_dataset, get_dataset_info, filter_dataset_by_length
-
+from codebleu import calc_codebleu
 
 def simulate_llm_fixes(buggy_codes: List[str], gt_fixed_codes: List[str]) -> List[str]:
     """
@@ -280,6 +280,7 @@ def run_dummy_example():
     
     # Evaluate
     results = evaluator.evaluate_batch(buggy_codes, gt_fixed_codes, llm_fixed_codes)
+    
     aggregated = evaluator.aggregate_results(results)
     
     print(f"Mean Diff Edit Similarity: {aggregated['diff_edit_similarity']['mean_diff_edit_similarity']:.3f}")
@@ -294,7 +295,10 @@ def run_dummy_example():
     print("- Add new metrics by inheriting from BaseMetric")
     print("- Register metrics with the MetricsEvaluator")
     print("- Evaluate multiple metrics simultaneously")
-
+    
+    results = calc_codebleu(gt_fixed_codes, llm_fixed_codes, lang="python")
+    print(results)
 
 if __name__ == "__main__":
-    main() 
+    # main() 
+    run_dummy_example()

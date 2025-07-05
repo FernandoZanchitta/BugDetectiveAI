@@ -78,6 +78,25 @@ response = await model.generate_basic_output("Hello, how are you?")
 print(response)
 ```
 
+### Progress Monitoring
+
+The OpenRouter model includes built-in progress monitoring using tqdm:
+
+```python
+# Individual code generation with step-by-step progress
+result = await model.generate_code_output(prompt, show_progress=True)
+# Shows: 🔄 Initializing OpenRouter client...
+#        📝 Building enhanced prompt...
+#        🚀 Generating code with model: anthropic/claude-3.5-sonnet
+#        🧹 Cleaning and extracting code...
+#        ✅ Code generation completed!
+
+# Batch processing with progress bar
+prompts = ["prompt1", "prompt2", "prompt3"]
+results = await model.generate_batch_outputs(prompts, show_progress=True)
+# Shows: Processing prompt 1/3: 100%|██████████| 3/3 [00:30<00:00, 10.0s/prompts]
+```
+
 ### Advanced Configuration
 
 ```python
@@ -175,6 +194,25 @@ model = create_openrouter_model(
 
 # Use in data loader
 loader = DataLoader(model=model)
+```
+
+### Dataset Processing with Progress Monitoring
+
+The detective module includes progress monitoring for dataset processing:
+
+```python
+from bug_detective.detective import process_prompt_dataset
+import pandas as pd
+
+# Create sample dataset
+df = pd.DataFrame({
+    'before_merge': ['buggy_code_1', 'buggy_code_2'],
+    'full_traceback': ['error_1', 'error_2']
+})
+
+# Process with progress monitoring
+results = await process_prompt_dataset(model, df)
+# Shows: Processing sample 1/2: 100%|██████████| 2/2 [00:45<00:00, 22.5s/samples]
 ```
 
 ## Cost Optimization

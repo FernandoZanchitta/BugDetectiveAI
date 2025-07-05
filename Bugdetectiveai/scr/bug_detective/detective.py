@@ -1,79 +1,78 @@
 """
-Main BugDetective class for bug detection using LLM models.
+Bug Detective module for processing datasets with LLM models.
 """
 
 import asyncio
-from typing import Dict, Any, Optional
-from dataclasses import dataclass
-
-from ..llm_models.base_model import BaseLLMModel
-from ..structured_output.schemas import BugAnalysisSchema
-from ..structured_output.output_processor import StructuredOutputProcessor
-
-
-@dataclass
-class DetectionResult:
-    """Result of bug detection analysis."""
-    success: bool
-    bug_analysis: Optional[Dict[str, Any]] = None
-    error_message: Optional[str] = None
-    model_used: Optional[str] = None
+import pandas as pd
+from typing import List, Dict, Any
+from tqdm import tqdm
+from llm_models.open_router import OpenRouterLLMModel
+from llm_models.prompt import PromptBuilder
 
 
-class BugDetective:
-    """Main class for bug detection using LLM models."""
+async def process_prompt_dataset(
+    open_router_model: OpenRouterLLMModel,
+    prompt_dataset: pd.DataFrame
+) -> List[str]:
+    """
+    Process a prompt dataset using an OpenRouter LLM model.
     
-    def __init__(self, model: BaseLLMModel):
-        self.model = model
-        self.output_processor = StructuredOutputProcessor()
+    Args:
+        open_router_model: Configured OpenRouter LLM model instance
+        prompt_dataset: DataFrame containing 'before_merge' and 'full_traceback' columns
+        
+    Returns:
+        List of model responses for each sample in the dataset
+        
+    Raises:
+        ValueError: If required columns are missing from the dataset
+    """
+    # Validate required columns
+    required_columns = ['before_merge', 'full_traceback']
+    missing_columns = [col for col in required_columns if col not in prompt_dataset.columns]
     
-    async def analyze_bug(
-        self, 
-        code: str, 
-        context: Optional[str] = None,
-        concise: bool = False
-    ) -> DetectionResult:
-        """Analyze code for bugs."""
+    if missing_columns:
+        raise ValueError(f"Missing required columns: {missing_columns}")
+    
+    # Initialize prompt builder
+    prompt_builder = PromptBuilder()
+    
+    # Process each sample with progress monitoring
+    responses = []
+    
+    # Create progress bar
+    pbar = tqdm(
+        total=len(prompt_dataset),
+        desc="Processing dataset",
+        unit="samples",
+        ncols=100
+    )
+    
+    for index, (_, row) in enumerate(prompt_dataset.iterrows()):
         try:
-            schema = BugAnalysisSchema.get_concise_schema() if concise else BugAnalysisSchema.get_basic_schema()
-            prompt = self._create_prompt(code, context, concise)
+            # Update progress bar description
+            pbar.set_description(f"Processing sample {index + 1}/{len(prompt_dataset)}")
             
-            output = await self.model.generate_structured_output(prompt, schema)
-            processed = self.output_processor.process_output(output, schema)
-            
-            return DetectionResult(
-                success=processed.is_valid,
-                bug_analysis=processed.data if processed.is_valid else None,
-                error_message=None if processed.is_valid else ", ".join(processed.validation_errors),
-                model_used=self.model.config.model_name
+            # Build correction prompt
+            prompt = prompt_builder.build_correction_prompt(
+                buggy_code=str(row['before_merge']),
+                traceback_error=str(row['full_traceback'])
             )
+            
+            # Generate response
+            response = await open_router_model.generate_basic_output(prompt)
+            responses.append(response)
+            
+            # Update progress bar
+            pbar.update(1)
             
         except Exception as e:
-            return DetectionResult(
-                success=False,
-                error_message=str(e),
-                model_used=self.model.config.model_name
-            )
+            # Handle errors gracefully and add error message
+            error_response = f"Error processing sample {index}: {str(e)}"
+            responses.append(error_response)
+            pbar.update(1)
     
-    def _create_prompt(self, code: str, context: Optional[str], concise: bool) -> str:
-        """Create analysis prompt."""
-        prompt = f"Analyze this code for bugs:\n\n{code}"
-        
-        if context:
-            prompt += f"\n\nContext: {context}"
-        
-        if concise:
-            prompt += "\n\nProvide concise analysis with bug type, severity, description, location, suggested fix, and confidence."
-        else:
-            prompt += "\n\nProvide detailed analysis with bug type, severity, description, and location."
-        
-        return prompt
+    # Close progress bar
+    pbar.close()
     
-    async def batch_analyze(
-        self, 
-        code_samples: list[str], 
-        concise: bool = False
-    ) -> list[DetectionResult]:
-        """Analyze multiple code samples."""
-        tasks = [self.analyze_bug(code, concise=concise) for code in code_samples]
-        return await asyncio.gather(*tasks) 
+    return responses
