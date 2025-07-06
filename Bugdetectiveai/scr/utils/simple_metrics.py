@@ -11,7 +11,7 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-def codebleu(candidate: str, reference: str, weights: Tuple[float, float,float,float] = (0.25, 0.25, 0.25, 0.25)) -> Dict[str, float]:
+def codebleu(candidate: str, reference: str, weights: Tuple[float, float,float,float] = (0.1, 0.4, 0.1, 0.4)) -> Dict[str, float]:
     """ Codebleu External Execution """
     assert len(weights) == 4
     assert sum(weights) == 1.0
