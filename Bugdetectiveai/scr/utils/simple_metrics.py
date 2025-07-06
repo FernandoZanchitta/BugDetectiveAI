@@ -2,6 +2,30 @@ import ast
 import difflib
 from codebleu import calc_codebleu
 from typing import List, Tuple, Dict
+import logging
+
+# Configura log para salvar casos problemáticos
+logging.basicConfig(
+    filename="codebleu_dataflow_warnings.log",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+def codebleu(candidate: str, reference: str, weights: Tuple[float, float,float,float] = (0.25, 0.25, 0.25, 0.25)) -> Dict[str, float]:
+    """ Codebleu External Execution """
+    assert len(weights) == 4
+    assert sum(weights) == 1.0
+    assert all(w >= 0 for w in weights)
+
+    metric = calc_codebleu([reference], [candidate], lang="python", weights=weights)
+    if metric.get("dataflow_match", 1.0) == 0.0:
+        logging.info("Dataflow extraction failed:")
+        logging.info(f"REFERENCE:\n{reference}")
+        logging.info(f"CANDIDATE:\n{candidate}")
+        logging.info("-" * 60)
+
+    return metric
+
 def display_asts(before_code: str, after_code: str) -> None:
     """Display both ASTs side by side for visual comparison.
     
@@ -110,8 +134,10 @@ def diff_score(before_code: str, after_code: str) -> dict:
 
     # Fallback: raw text similarity
     text_score = difflib.SequenceMatcher(None, before_code, after_code).ratio()
-    
-    return {"ast_score": ast_score, "text_score": text_score, "ast_score_normalized": ast_score_normalized}
+
+    codebleu_metrics = codebleu(after_code, before_code)
+
+    return {"ast_score": ast_score, "text_score": text_score, "ast_score_normalized": ast_score_normalized, **codebleu_metrics}
 
 
 PY_KEYWORDS = {
@@ -120,16 +146,3 @@ PY_KEYWORDS = {
     "lambda","None","nonlocal","not","or","pass","raise","return","True",
     "try","while","with","yield"
 }
-
-def get_ngrams(text, n=4):
-    """Get character-level n-grams for text."""
-    return [text[i:i + n] for i in range(len(text) - n + 1)]
-
-def codebleu(candidate: List[str], reference: List[str], weights: Tuple[float, float,float,float] = (0.25, 0.25, 0.25, 0.25)) -> Dict[str, float]:
-    """ Codebleu External Execution """
-    # assert len(candidate) == len(reference)
-    assert len(candidate) == len(reference)
-    assert len(weights) == 4
-    assert sum(weights) == 1.0
-    assert all(w >= 0 for w in weights)
-    return calc_codebleu(reference, candidate, lang="python", weights=weights)
