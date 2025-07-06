@@ -71,38 +71,7 @@ ZeroDivisionError: division by zero
     print("\n" + "="*50 + "\n")
 
 
-def test_analysis_prompt():
-    """Test analysis prompt building."""
-    
-    builder = PromptBuilder()
-    
-    buggy_code = """
-import requests
 
-def fetch_data(url):
-    response = requests.get(url)
-    return response.json()
-
-data = fetch_data("https://api.example.com/data")
-"""
-    
-    traceback_error = """
-requests.exceptions.ConnectionError: Failed to establish a new connection
-"""
-    
-    prompt = builder.build_analysis_prompt(
-        buggy_code=buggy_code,
-        traceback_error=traceback_error,
-        analysis_type="error handling",
-        additional_context={
-            "framework": "Flask",
-            "environment": "production"
-        }
-    )
-    
-    print("=== Analysis Prompt ===")
-    print(prompt)
-    print("\n" + "="*50 + "\n")
 
 
 def test_custom_prompt():
@@ -146,5 +115,4 @@ Format your response as:
 if __name__ == "__main__":
     test_basic_prompt_building()
     test_prompt_with_examples()
-    test_analysis_prompt()
     test_custom_prompt() 

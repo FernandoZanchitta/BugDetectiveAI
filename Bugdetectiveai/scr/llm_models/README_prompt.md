@@ -51,20 +51,7 @@ prompt = builder.build_correction_prompt(
 )
 ```
 
-### Analysis Prompts
 
-```python
-# Build analysis prompt
-prompt = builder.build_analysis_prompt(
-    buggy_code=code,
-    traceback_error=error,
-    analysis_type="performance",
-    additional_context={
-        "framework": "Django",
-        "environment": "production"
-    }
-)
-```
 
 ### Custom Templates
 
@@ -97,12 +84,7 @@ prompt = builder.build_custom_prompt(
 - `retrieved_examples`: List of example dictionaries with `buggy_code` and `corrected_code`
 - `include_examples`: Boolean to control example inclusion
 
-### Analysis Prompts
 
-- `analysis_type`: Type of analysis (e.g., "general", "performance", "security")
-- `buggy_code`: The code to analyze
-- `traceback_error`: The error message
-- `additional_context`: Dictionary of additional context variables
 
 ## File-based Templates
 

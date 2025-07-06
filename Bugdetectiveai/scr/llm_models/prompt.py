@@ -79,55 +79,7 @@ Corrected:
             include_examples=include_examples
         )
     
-    def build_analysis_prompt(
-        self,
-        buggy_code: str,
-        traceback_error: str,
-        analysis_type: str = "general",
-        additional_context: Optional[Dict[str, Any]] = None
-    ) -> str:
-        """
-        Build a prompt for code analysis using Jinja2 template.
-        
-        Args:
-            buggy_code (str): The original buggy code.
-            traceback_error (str): The traceback error associated with the code.
-            analysis_type (str): Type of analysis ("general", "performance", "security", etc.).
-            additional_context (Dict[str, Any], optional): Additional context for the analysis.
-            
-        Returns:
-            str: The formatted prompt.
-        """
-        template_str = """
-Please analyze the following code and provide insights about the {{ analysis_type }} issues.
 
-### CODE TO ANALYZE:
-{{ buggy_code }}
-
-### ERROR MESSAGE:
-{{ traceback_error }}
-
-{% if additional_context %}
-### ADDITIONAL CONTEXT:
-{% for key, value in additional_context.items() %}
-**{{ key }}**: {{ value }}
-{% endfor %}
-{% endif %}
-
-Please provide a detailed analysis focusing on {{ analysis_type }} aspects:
-1. Root cause of the error
-2. Potential impact
-3. Recommended solutions
-4. Best practices to prevent similar issues
-"""
-        
-        template = Template(template_str)
-        return template.render(
-            analysis_type=analysis_type,
-            buggy_code=buggy_code,
-            traceback_error=traceback_error,
-            additional_context=additional_context or {}
-        )
     
     def build_structured_prompt(
         self,
