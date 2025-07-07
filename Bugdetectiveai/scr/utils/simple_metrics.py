@@ -8,52 +8,87 @@ from codebleu import calc_codebleu
 DEFAULT_CODEBLEU_WEIGHTS = (0.1, 0.4, 0.1, 0.4)
 LOG_FILENAME = "codebleu_dataflow_warnings.log"
 PY_KEYWORDS = {
-    "and", "as", "assert", "break", "class", "continue", "def", "del", "elif", "else",
-    "except", "False", "finally", "for", "from", "global", "if", "import", "in", "is",
-    "lambda", "None", "nonlocal", "not", "or", "pass", "raise", "return", "True",
-    "try", "while", "with", "yield"
+    "and",
+    "as",
+    "assert",
+    "break",
+    "class",
+    "continue",
+    "def",
+    "del",
+    "elif",
+    "else",
+    "except",
+    "False",
+    "finally",
+    "for",
+    "from",
+    "global",
+    "if",
+    "import",
+    "in",
+    "is",
+    "lambda",
+    "None",
+    "nonlocal",
+    "not",
+    "or",
+    "pass",
+    "raise",
+    "return",
+    "True",
+    "try",
+    "while",
+    "with",
+    "yield",
 }
 
 # Configure logging for problematic cases
 logging.basicConfig(
     filename=LOG_FILENAME,
     level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
+    format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
 
 def exact_match(a: str, b: str) -> float:
     """Check if two strings are exactly equal.
-    
+
     Args:
         a: First string to compare
         b: Second string to compare
-        
+
     Returns:
         1.0 if strings are identical, 0.0 otherwise
     """
     return 1.0 if a == b else 0.0
 
 
-def codebleu(candidate: str, reference: str, weights: Tuple[float, float, float, float] = DEFAULT_CODEBLEU_WEIGHTS) -> Dict[str, float]:
+def codebleu(
+    candidate: str,
+    reference: str,
+    weights: Tuple[float, float, float, float] = DEFAULT_CODEBLEU_WEIGHTS,
+) -> Dict[str, float]:
     """Calculate CodeBLEU metrics between candidate and reference code.
-    
+
     Args:
         candidate: The generated/fixed code to evaluate
         reference: The original/correct code to compare against
         weights: Tuple of weights for (ngram_match, weighted_ngram_match, syntax_match, dataflow_match)
-        
+
     Returns:
         Dictionary containing CodeBLEU metrics
-        
+
     Raises:
         AssertionError: If weights are invalid
     """
     if len(weights) != 4 or sum(weights) != 1.0 or not all(w >= 0 for w in weights):
-        raise ValueError("Weights must be a tuple of 4 non-negative floats that sum to 1.0")
+        raise ValueError(
+            "Weights must be a tuple of 4 non-negative floats that sum to 1.0"
+        )
 
     metric = calc_codebleu([reference], [candidate], lang="python", weights=weights)
-    
+
     # Log dataflow extraction failures for debugging
     if metric.get("dataflow_match", 1.0) == 0.0:
         logging.info("Dataflow extraction failed:")
@@ -66,7 +101,7 @@ def codebleu(candidate: str, reference: str, weights: Tuple[float, float, float,
 
 class Normalizer(ast.NodeTransformer):
     """Normalizes identifiers and constants in an AST to make comparisons robust to naming changes."""
-    
+
     def __init__(self):
         self.var_count = 0
         self.func_count = 0
@@ -107,10 +142,10 @@ class Normalizer(ast.NodeTransformer):
 
 def get_normalized_ast(code: str) -> str:
     """Generate a normalized AST dump for the given code.
-    
+
     Args:
         code: Python code string to normalize
-        
+
     Returns:
         Normalized AST dump as string, or empty string if parsing fails
     """
@@ -126,11 +161,11 @@ def get_normalized_ast(code: str) -> str:
 
 def _calculate_ast_similarity(before_code: str, after_code: str) -> float:
     """Calculate AST similarity between two code strings.
-    
+
     Args:
         before_code: Original code
         after_code: Modified code
-        
+
     Returns:
         Similarity score between 0.0 and 1.0
     """
@@ -144,37 +179,39 @@ def _calculate_ast_similarity(before_code: str, after_code: str) -> float:
 
 def diff_score(before_code: str, after_code: str) -> Dict[str, float]:
     """Calculate comprehensive similarity scores between before and after code.
-    
+
     This is the main function that calculates multiple similarity metrics:
     - AST structure similarity
     - Normalized AST similarity (ignoring variable/function names)
     - Text similarity
     - CodeBLEU metrics
-    
+
     Args:
         before_code: Original code string
         after_code: Modified code string
-        
+
     Returns:
         Dictionary containing all similarity metrics
     """
     # Calculate AST similarity
     ast_score = _calculate_ast_similarity(before_code, after_code)
-    
+
     # Calculate normalized AST similarity
     before_normalized = get_normalized_ast(before_code)
     after_normalized = get_normalized_ast(after_code)
-    ast_score_normalized = difflib.SequenceMatcher(None, before_normalized, after_normalized).ratio()
-    
+    ast_score_normalized = difflib.SequenceMatcher(
+        None, before_normalized, after_normalized
+    ).ratio()
+
     # Calculate text similarity
     text_score = difflib.SequenceMatcher(None, before_code, after_code).ratio()
-    
+
     # Calculate CodeBLEU metrics
     codebleu_metrics = codebleu(after_code, before_code)
-    
+
     return {
         "ast_score": ast_score,
-        "text_score": text_score, 
+        "text_score": text_score,
         "ast_score_normalized": ast_score_normalized,
-        **codebleu_metrics
+        **codebleu_metrics,
     }

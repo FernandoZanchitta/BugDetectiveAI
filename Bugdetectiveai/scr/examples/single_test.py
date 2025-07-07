@@ -20,25 +20,23 @@ async def run_single_test():
     """Run a single test with one sample."""
     print("🐛 BugDetectiveAI - Single Test")
     print("=" * 40)
-    
+
     # Check for API key
     api_key = os.getenv("OPEN_ROUTER_KEY")
     if not api_key:
         print("❌ Error: OPEN_ROUTER_KEY environment variable not set")
         print("Please set it with: export OPEN_ROUTER_KEY='your-key-here'")
         return False
-    
+
     # Configure model
     config = ModelConfig(
-        model_name="anthropic/claude-3.5-sonnet",
-        temperature=0.1,
-        api_key=api_key
+        model_name="anthropic/claude-3.5-sonnet", temperature=0.1, api_key=api_key
     )
-    
+
     # Initialize model and detective
     model = OpenRouterLLMModel(config)
     detective = BugDetective(model)
-    
+
     # Single test sample - a classic division by zero bug
     test_code = """
 def calculate_average(numbers):
@@ -46,15 +44,15 @@ def calculate_average(numbers):
     count = len(numbers)
     return total / count  # Potential division by zero if numbers is empty
 """
-    
+
     print("📝 Test Code:")
     print(test_code.strip())
     print("\n🔍 Analyzing...")
-    
+
     try:
         # Run the analysis
         result = await detective.analyze_bug(test_code, concise=True)
-        
+
         if result.success:
             print("✅ Test PASSED!")
             print("\n📊 Analysis Results:")
@@ -70,7 +68,7 @@ def calculate_average(numbers):
             print("❌ Test FAILED!")
             print(f"   Error: {result.error_message}")
             return False
-            
+
     except Exception as e:
         print("❌ Test FAILED with exception!")
         print(f"   Exception: {str(e)}")
@@ -96,4 +94,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    main()

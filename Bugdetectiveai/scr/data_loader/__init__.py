@@ -7,4 +7,4 @@ from pickle files.
 
 from .loader import load_buggy_dataset, load_stable_dataset, get_dataset_paths
 
-__all__ = ['load_buggy_dataset', 'load_stable_dataset', 'get_dataset_paths'] 
+__all__ = ["load_buggy_dataset", "load_stable_dataset", "get_dataset_paths"]
