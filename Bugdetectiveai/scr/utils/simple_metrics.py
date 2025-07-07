@@ -193,6 +193,11 @@ def diff_score(before_code: str, after_code: str) -> Dict[str, float]:
     Returns:
         Dictionary containing all similarity metrics
     """
+
+
+    # Calculate exact match
+    exact_match_score = exact_match(before_code, after_code)
+
     # Calculate AST similarity
     ast_score = _calculate_ast_similarity(before_code, after_code)
 
@@ -210,6 +215,7 @@ def diff_score(before_code: str, after_code: str) -> Dict[str, float]:
     codebleu_metrics = codebleu(after_code, before_code)
 
     return {
+        "exact_match": exact_match_score,
         "ast_score": ast_score,
         "text_score": text_score,
         "ast_score_normalized": ast_score_normalized,
