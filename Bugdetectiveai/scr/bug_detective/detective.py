@@ -22,6 +22,7 @@ async def process_prompt_dataset(
     prompt_dataset: pd.DataFrame,
     dataset_name: Optional[str] = None,
     save_frequency: int = 5,
+    instruction_prompt: str = "You are a helpful assistant that corrects the code based on the traceback error.",
 ) -> List[str]:
     """
     Process a prompt dataset using an OpenRouter LLM model with checkpoint support.
@@ -85,6 +86,7 @@ async def process_prompt_dataset(
                 prompt = prompt_builder.build_correction_prompt(
                     buggy_code=str(row["before_merge_without_docstrings"]),
                     traceback_error=str(row["full_traceback"]),
+                    instruction_prompt=instruction_prompt
                 )
 
                 # Generate response

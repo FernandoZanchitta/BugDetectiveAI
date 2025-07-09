@@ -1,7 +1,8 @@
-from utils.simple_metrics import diff_score
+from utils.simple_metrics import diff_score, compute_and_store_metrics, get_metrics_columns, has_metrics_columns
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+from typing import List, Tuple, Optional
 
 
 def plot_column_distribution(
@@ -121,9 +122,49 @@ def _print_metric_statistics(metrics_dicts, labels, available_metrics, stat_titl
 
 
 def compare_metrics_versus_bug_histograms(
-    buggy_codes, groundtruth_codes, corrected_codes
+    buggy_codes, groundtruth_codes, corrected_codes, 
+    use_dataframe=False, df=None, reference_column=None, response_columns=None,
+    use_stored_metrics=True, compute_if_missing=True
 ):
-    """Compare metrics between buggy, corrected, and groundtruth codes using histograms."""
+    """Compare metrics between buggy, corrected, and groundtruth codes using histograms.
+    
+    Args:
+        buggy_codes: List of buggy code strings (used only if use_dataframe=False)
+        groundtruth_codes: List of groundtruth code strings (used only if use_dataframe=False)
+        corrected_codes: List of corrected code strings (used only if use_dataframe=False)
+        use_dataframe: If True, use dataframe approach with stored metrics (default: False)
+        df: DataFrame containing code columns (required if use_dataframe=True)
+        reference_column: Name of reference column (required if use_dataframe=True)
+        response_columns: List of response column names (required if use_dataframe=True)
+        use_stored_metrics: If True, use pre-computed metrics (default: True)
+        compute_if_missing: If True, compute missing metrics automatically (default: True)
+    """
+    if use_dataframe:
+        if df is None or reference_column is None or response_columns is None:
+            raise ValueError("df, reference_column, and response_columns are required when use_dataframe=True")
+        
+        # Use stored metrics approach
+        if use_stored_metrics:
+            # Check if we need to compute metrics
+            need_computation = False
+            for response_col in response_columns:
+                if not has_metrics_columns(df, response_col):
+                    need_computation = True
+                    break
+            
+            if need_computation:
+                if compute_if_missing:
+                    print("Some metrics are missing. Computing them now...")
+                    df = compute_and_store_metrics(df, reference_column, response_columns)
+                else:
+                    print("Some metrics are missing. Set compute_if_missing=True to compute them automatically.")
+                    return
+            
+            # Use stored metrics for visualization
+            compare_metrics_histograms_from_stored(df, response_columns, title_prefix="Bug vs Response Models")
+            return
+    
+    # Original implementation for computing metrics on-the-fly
     # Calculate diff scores (returns dict with all metrics)
     bug_vs_corrected_diff = [
         diff_score(bug, corr) for bug, corr in zip(buggy_codes, corrected_codes)
@@ -154,8 +195,49 @@ def compare_metrics_versus_bug_histograms(
     )
 
 
-def compare_groundtruth_vs_corrected_histograms(groundtruth_codes, corrected_codes):
-    """Compare metrics between groundtruth and corrected codes using histograms."""
+def compare_groundtruth_vs_corrected_histograms(
+    groundtruth_codes, corrected_codes,
+    use_dataframe=False, df=None, reference_column=None, response_columns=None,
+    use_stored_metrics=True, compute_if_missing=True
+):
+    """Compare metrics between groundtruth and corrected codes using histograms.
+    
+    Args:
+        groundtruth_codes: List of groundtruth code strings (used only if use_dataframe=False)
+        corrected_codes: List of corrected code strings (used only if use_dataframe=False)
+        use_dataframe: If True, use dataframe approach with stored metrics (default: False)
+        df: DataFrame containing code columns (required if use_dataframe=True)
+        reference_column: Name of reference column (required if use_dataframe=True)
+        response_columns: List of response column names (required if use_dataframe=True)
+        use_stored_metrics: If True, use pre-computed metrics (default: True)
+        compute_if_missing: If True, compute missing metrics automatically (default: True)
+    """
+    if use_dataframe:
+        if df is None or reference_column is None or response_columns is None:
+            raise ValueError("df, reference_column, and response_columns are required when use_dataframe=True")
+        
+        # Use stored metrics approach
+        if use_stored_metrics:
+            # Check if we need to compute metrics
+            need_computation = False
+            for response_col in response_columns:
+                if not has_metrics_columns(df, response_col):
+                    need_computation = True
+                    break
+            
+            if need_computation:
+                if compute_if_missing:
+                    print("Some metrics are missing. Computing them now...")
+                    df = compute_and_store_metrics(df, reference_column, response_columns)
+                else:
+                    print("Some metrics are missing. Set compute_if_missing=True to compute them automatically.")
+                    return
+            
+            # Use stored metrics for visualization
+            compare_metrics_histograms_from_stored(df, response_columns, title_prefix="Groundtruth vs Response Models")
+            return
+    
+    # Original implementation for computing metrics on-the-fly
     groundtruth_vs_corrected_diff = [
         diff_score(gt, corr) for gt, corr in zip(groundtruth_codes, corrected_codes)
     ]
@@ -178,12 +260,104 @@ def compare_groundtruth_vs_corrected_histograms(groundtruth_codes, corrected_cod
     )
 
 
+def compare_metrics_histograms_from_stored(
+    df: pd.DataFrame,
+    response_columns: List[str],
+    title_prefix: str = "Metrics Comparison",
+    figsize: Tuple[int, int] = (18, 12)
+):
+    """
+    Create histograms using pre-computed metrics stored in the dataframe.
+    
+    Args:
+        df (pd.DataFrame): Input dataset containing pre-computed metrics columns
+        response_columns (List[str]): List of response column names
+        title_prefix (str): Prefix for the overall title
+        figsize (Tuple[int, int]): Figure size as (width, height)
+    """
+    # Get all available metrics from the first response column
+    if not response_columns:
+        raise ValueError("No response columns provided")
+    
+    first_response_col = response_columns[0]
+    if not has_metrics_columns(df, first_response_col):
+        raise ValueError(f"No metrics columns found for {first_response_col}")
+    
+    metrics_columns = get_metrics_columns(df, first_response_col)
+    # Remove 'response_' prefix from response column name for metric name extraction
+    clean_first_response_col = first_response_col.replace("response_", "")
+    metric_names = [col.replace(f"metric_{clean_first_response_col}_", "") for col in metrics_columns]
+    
+    print(f"Creating histograms using stored metrics for {len(response_columns)} response columns...")
+    
+    # Prepare metrics data for histogram plotting
+    metrics_dicts = []
+    labels = []
+    colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown']
+    
+    for i, response_col in enumerate(response_columns):
+        metrics_dict = {}
+        for metric in metric_names:
+            # Remove 'response_' prefix from response column name
+            clean_response_col = response_col.replace("response_", "")
+            metric_column = f"metric_{clean_response_col}_{metric}"
+            if metric_column in df.columns:
+                # Remove NaN values
+                values = df[metric_column].dropna().tolist()
+                metrics_dict[metric] = values
+        
+        if metrics_dict:  # Only add if we have data
+            metrics_dicts.append(metrics_dict)
+            labels.append(response_col.replace("response_", "").replace("_", " ").title())
+    
+    if not metrics_dicts:
+        raise ValueError("No valid metrics data found for any response column")
+    
+    # Use the existing helper function for plotting
+    _plot_metric_histograms(
+        metrics_dicts,
+        labels=labels,
+        colors=colors[:len(metrics_dicts)],
+        available_metrics=metric_names,
+        title_prefix=title_prefix
+    )
+    
+    # Print statistics using stored metrics
+    _print_metric_statistics_from_stored(df, response_columns, metric_names, f"{title_prefix} STATISTICS")
+
+
+def _print_metric_statistics_from_stored(
+    df: pd.DataFrame, 
+    response_columns: List[str], 
+    metric_names: List[str], 
+    stat_title: str
+):
+    """
+    Helper to print summary statistics for stored metrics.
+    """
+    print(f"=== {stat_title} (FROM STORED METRICS) ===")
+    for metric in metric_names:
+        for response_col in response_columns:
+            # Remove 'response_' prefix from response column name
+            clean_response_col = response_col.replace("response_", "")
+            metric_column = f"metric_{clean_response_col}_{metric}"
+            if metric_column in df.columns:
+                values = df[metric_column].dropna()
+                if len(values) > 0:
+                    mean_val = values.mean()
+                    std_val = values.std()
+                    print(f"{metric.replace('_', ' ').title()} - {response_col.replace('response_', '').replace('_', ' ').title()}: "
+                          f"mean={mean_val:.3f}, std={std_val:.3f} (n={len(values)})")
+
+
 def plot_metrics_boxplots(
     df, 
     reference_column="after_merge_without_docstrings", 
     response_columns=None, 
-    figsize=(20, 12),
-    title_prefix="Metrics Comparison"
+    figsize=(20, 15),
+    title_prefix="Metrics Comparison",
+    use_stored_metrics=True,
+    compute_if_missing=True
 ):
     """
     Create boxplots for all diff_score metrics across multiple response columns.
@@ -195,6 +369,8 @@ def plot_metrics_boxplots(
                                If None, will automatically find all columns starting with "response_"
         figsize (tuple): Figure size as (width, height) (default: (20, 12))
         title_prefix (str): Prefix for the overall title (default: "Metrics Comparison")
+        use_stored_metrics (bool): If True, use pre-computed metrics stored in dataframe (default: True)
+        compute_if_missing (bool): If True and use_stored_metrics=True, compute missing metrics (default: True)
     """
     # Validate reference column exists
     assert reference_column in df.columns, (
@@ -213,6 +389,28 @@ def plot_metrics_boxplots(
     if not response_columns:
         raise ValueError("No response columns found. Please specify response_columns or ensure columns start with 'response_'")
     
+    # Use stored metrics if requested
+    if use_stored_metrics:
+        # Check if we need to compute metrics
+        need_computation = False
+        for response_col in response_columns:
+            if not has_metrics_columns(df, response_col):
+                need_computation = True
+                break
+        
+        if need_computation:
+            if compute_if_missing:
+                print("Some metrics are missing. Computing them now...")
+                df = compute_and_store_metrics(df, reference_column, response_columns)
+            else:
+                print("Some metrics are missing. Set compute_if_missing=True to compute them automatically.")
+                return
+        
+        # Use stored metrics for visualization
+        plot_metrics_boxplots_from_stored(df, response_columns, figsize, title_prefix)
+        return
+    
+    # Original implementation for computing metrics on-the-fly
     print(f"Comparing {reference_column} against {len(response_columns)} response columns: {response_columns}")
     
     # Calculate metrics for each response column
@@ -305,7 +503,7 @@ def plot_metrics_boxplots(
     
     # Add overall title
     fig.suptitle(f"{title_prefix}: {reference_column} vs Response Models", 
-                 fontsize=16, fontweight='bold', y=0.98)
+                 fontsize=16, fontweight='bold', y=0.99)
     
     plt.tight_layout()
     plt.subplots_adjust(top=0.95)
@@ -328,3 +526,248 @@ def plot_metrics_boxplots(
                 median_val = np.median(values)
                 print(f"  {response_col.replace('response_', '').replace('_', ' ').title()}: "
                       f"mean={mean_val:.3f}, std={std_val:.3f}, median={median_val:.3f}")
+
+
+def plot_metrics_boxplots_from_stored(
+    df: pd.DataFrame,
+    response_columns: List[str],
+    figsize: Tuple[int, int] = (20, 15),
+    title_prefix: str = "Metrics Comparison"
+):
+    """
+    Create boxplots using pre-computed metrics stored in the dataframe.
+    
+    Args:
+        df (pd.DataFrame): Input dataset containing pre-computed metrics columns
+        response_columns (List[str]): List of response column names
+        figsize (Tuple[int, int]): Figure size as (width, height)
+        title_prefix (str): Prefix for the overall title
+    """
+    # Get all available metrics from the first response column
+    if not response_columns:
+        raise ValueError("No response columns provided")
+    
+    first_response_col = response_columns[0]
+    if not has_metrics_columns(df, first_response_col):
+        raise ValueError(f"No metrics columns found for {first_response_col}")
+    
+    metrics_columns = get_metrics_columns(df, first_response_col)
+    # Remove 'response_' prefix from response column name for metric name extraction
+    clean_first_response_col = first_response_col.replace("response_", "")
+    metric_names = [col.replace(f"metric_{clean_first_response_col}_", "") for col in metrics_columns]
+    
+    print(f"Creating boxplots using stored metrics for {len(response_columns)} response columns...")
+    
+    # Create subplots for each metric
+    n_metrics = len(metric_names)
+    n_cols = 3
+    n_rows = (n_metrics + n_cols - 1) // n_cols
+    
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=figsize)
+    if n_rows == 1:
+        axes = axes.reshape(1, -1)
+    elif n_metrics == 1:
+        axes = axes.reshape(1, 1)
+    
+    # Create boxplots for each metric
+    for i, metric in enumerate(metric_names):
+        row = i // n_cols
+        col = i % n_cols
+        
+        # Prepare data for boxplot
+        boxplot_data = []
+        labels = []
+        
+        for response_col in response_columns:
+            # Remove 'response_' prefix from response column name
+            clean_response_col = response_col.replace("response_", "")
+            metric_column = f"metric_{clean_response_col}_{metric}"
+            if metric_column in df.columns:
+                # Remove NaN values for boxplot
+                values = df[metric_column].dropna().tolist()
+                if values:  # Only add if we have non-empty data
+                    boxplot_data.append(values)
+                    labels.append(clean_response_col.replace("_", " ").title())
+        
+        if boxplot_data:
+            # Create boxplot
+            bp = axes[row, col].boxplot(boxplot_data, labels=labels, patch_artist=True)
+            
+            # Color the boxes
+            colors = ['lightblue', 'lightgreen', 'lightcoral', 'lightyellow', 'lightpink', 'lightgray'][:len(bp['boxes'])]
+            for patch, color in zip(bp['boxes'], colors):
+                patch.set_facecolor(color)
+                patch.set_alpha(0.7)
+            
+            # Customize the plot
+            axes[row, col].set_title(f"{metric.replace('_', ' ').title()}", fontweight='bold')
+            axes[row, col].set_ylabel('Score')
+            axes[row, col].grid(True, alpha=0.3)
+            
+            # Rotate x-axis labels if needed
+            if len(labels) > 3:
+                axes[row, col].tick_params(axis='x', rotation=45)
+    
+    # Hide unused subplots
+    for i in range(n_metrics, n_rows * n_cols):
+        row = i // n_cols
+        col = i % n_cols
+        axes[row, col].set_visible(False)
+    
+    # Add overall title
+    fig.suptitle(f"{title_prefix}: Using Stored Metrics", 
+                 fontsize=16, fontweight='bold', y=0.99)
+    
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.95)
+    plt.show()
+    
+    # Print summary statistics
+    print(f"\n=== SUMMARY STATISTICS (FROM STORED METRICS) ===")
+    print(f"Number of response columns: {len(response_columns)}")
+    print(f"Number of metrics: {len(metric_names)}")
+    print(f"Available metrics: {metric_names}")
+    
+    for metric in metric_names:
+        print(f"\n{metric.replace('_', ' ').title()}:")
+        for response_col in response_columns:
+            # Remove 'response_' prefix from response column name
+            clean_response_col = response_col.replace("response_", "")
+            metric_column = f"metric_{clean_response_col}_{metric}"
+            if metric_column in df.columns:
+                values = df[metric_column].dropna()
+                if len(values) > 0:
+                    mean_val = values.mean()
+                    std_val = values.std()
+                    median_val = values.median()
+                    print(f"  {clean_response_col.replace('_', ' ').title()}: "
+                          f"mean={mean_val:.3f}, std={std_val:.3f}, median={median_val:.3f} "
+                          f"(n={len(values)})")
+
+
+def plot_metrics_histograms(
+    df: pd.DataFrame,
+    reference_column: str = "after_merge_without_docstrings",
+    response_columns: Optional[List[str]] = None,
+    use_stored_metrics: bool = True,
+    compute_if_missing: bool = True,
+    figsize: Tuple[int, int] = (18, 12),
+    title_prefix: str = "Metrics Comparison"
+):
+    """
+    Create histograms for all diff_score metrics across multiple response columns.
+    
+    Args:
+        df (pd.DataFrame): Input dataset containing code columns
+        reference_column (str): Name of the reference code column
+        response_columns (List[str]): List of response column names to compare against reference.
+                                    If None, will automatically find all columns starting with "response_"
+        use_stored_metrics (bool): If True, use pre-computed metrics stored in dataframe (default: True)
+        compute_if_missing (bool): If True and use_stored_metrics=True, compute missing metrics (default: True)
+        figsize (Tuple[int, int]): Figure size as (width, height)
+        title_prefix (str): Prefix for the overall title
+    """
+    # Validate reference column exists
+    if reference_column not in df.columns:
+        raise ValueError(f"Reference column '{reference_column}' not found. Available columns: {list(df.columns)}")
+    
+    # Auto-detect response columns if not provided
+    if response_columns is None:
+        response_columns = [col for col in df.columns if col.startswith("response_")]
+    
+    # Validate response columns exist
+    missing_columns = [col for col in response_columns if col not in df.columns]
+    if missing_columns:
+        raise ValueError(f"Response columns not found: {missing_columns}")
+    
+    if not response_columns:
+        raise ValueError("No response columns found. Please specify response_columns or ensure columns start with 'response_'")
+    
+    # Use stored metrics if requested
+    if use_stored_metrics:
+        # Check if we need to compute metrics
+        need_computation = False
+        for response_col in response_columns:
+            if not has_metrics_columns(df, response_col):
+                need_computation = True
+                break
+        
+        if need_computation:
+            if compute_if_missing:
+                print("Some metrics are missing. Computing them now...")
+                df = compute_and_store_metrics(df, reference_column, response_columns)
+            else:
+                print("Some metrics are missing. Set compute_if_missing=True to compute them automatically.")
+                return
+        
+        # Use stored metrics for visualization
+        compare_metrics_histograms_from_stored(df, response_columns, title_prefix, figsize)
+        return
+    
+    # Original implementation for computing metrics on-the-fly
+    print(f"Computing metrics on-the-fly for {reference_column} vs {len(response_columns)} response columns...")
+    
+    # Calculate metrics for each response column
+    all_metrics_data = {}
+    
+    for response_col in response_columns:
+        print(f"Calculating metrics for {response_col}...")
+        metrics_list = []
+        
+        for idx, row in df.iterrows():
+            try:
+                reference_code = str(row[reference_column])
+                response_code = str(row[response_col])
+                
+                # Skip if either code is empty or NaN
+                if pd.isna(reference_code) or pd.isna(response_code) or reference_code == "" or response_code == "":
+                    continue
+                    
+                metrics = diff_score(reference_code, response_code)
+                metrics_list.append(metrics)
+                
+            except Exception as e:
+                print(f"Error calculating metrics for row {idx}: {e}")
+                continue
+        
+        if metrics_list:
+            # Convert list of dicts to dict of lists
+            metrics_dict = {}
+            for metric_name in metrics_list[0].keys():
+                metrics_dict[metric_name] = [m[metric_name] for m in metrics_list]
+            all_metrics_data[response_col] = metrics_dict
+        else:
+            print(f"Warning: No valid metrics calculated for {response_col}")
+    
+    if not all_metrics_data:
+        raise ValueError("No valid metrics data could be calculated for any response column")
+    
+    # Get all available metrics
+    available_metrics = list(next(iter(all_metrics_data.values())).keys())
+    
+    # Prepare data for histogram plotting
+    metrics_dicts = []
+    labels = []
+    colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown']
+    
+    for i, response_col in enumerate(response_columns):
+        if response_col in all_metrics_data:
+            metrics_dicts.append(all_metrics_data[response_col])
+            labels.append(response_col.replace("response_", "").replace("_", " ").title())
+    
+    # Use the existing helper function for plotting
+    _plot_metric_histograms(
+        metrics_dicts,
+        labels=labels,
+        colors=colors[:len(metrics_dicts)],
+        available_metrics=available_metrics,
+        title_prefix=title_prefix
+    )
+    
+    # Print statistics
+    _print_metric_statistics(
+        metrics_dicts,
+        labels=labels,
+        available_metrics=available_metrics,
+        stat_title=f"{title_prefix} STATISTICS"
+    )

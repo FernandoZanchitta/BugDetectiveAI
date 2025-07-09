@@ -1,7 +1,8 @@
 import ast
 import difflib
 import logging
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List, Optional
+import pandas as pd
 from codebleu import calc_codebleu
 
 # Constants
@@ -221,3 +222,171 @@ def diff_score(before_code: str, after_code: str) -> Dict[str, float]:
         "ast_score_normalized": ast_score_normalized,
         **codebleu_metrics,
     }
+
+
+def compute_and_store_metrics(
+    df: pd.DataFrame,
+    reference_column: str = "after_merge_without_docstrings",
+    response_columns: Optional[List[str]] = None,
+    force_recompute: bool = False,
+    show_progress: bool = True
+) -> pd.DataFrame:
+    """Calculate diff_score metrics and store them as columns in the dataframe.
+    
+    This function computes metrics between reference code and response code columns,
+    storing the results as new columns to avoid re-computation in visualization functions.
+    
+    Args:
+        df (pd.DataFrame): Input dataframe containing code columns
+        reference_column (str): Name of the reference code column (default: "after_merge_without_docstrings")
+        response_columns (List[str], optional): List of response column names to compare against reference.
+                                              If None, will automatically find all columns starting with "response_"
+        force_recompute (bool): If True, recompute metrics even if columns already exist (default: False)
+        show_progress (bool): If True, show progress with tqdm (default: True)
+    
+    Returns:
+        pd.DataFrame: DataFrame with metrics columns added
+        
+    Raises:
+        ValueError: If reference column or response columns don't exist
+    """
+    # Validate reference column exists
+    if reference_column not in df.columns:
+        raise ValueError(f"Reference column '{reference_column}' not found. Available columns: {list(df.columns)}")
+    
+    # Auto-detect response columns if not provided
+    if response_columns is None:
+        response_columns = [col for col in df.columns if col.startswith("response_")]
+    
+    # Validate response columns exist
+    missing_columns = [col for col in response_columns if col not in df.columns]
+    if missing_columns:
+        raise ValueError(f"Response columns not found: {missing_columns}")
+    
+    if not response_columns:
+        raise ValueError("No response columns found. Please specify response_columns or ensure columns start with 'response_'")
+    
+    # Get expected metric names from a sample calculation
+    sample_metrics = diff_score("", "")
+    metric_names = list(sample_metrics.keys())
+    
+    # Create a copy of the dataframe to avoid modifying the original
+    result_df = df.copy()
+    
+    # Import tqdm for progress tracking if needed
+    if show_progress:
+        try:
+            from tqdm import tqdm
+        except ImportError:
+            print("Warning: tqdm not available, progress tracking disabled")
+            show_progress = False
+    
+    print(f"Computing metrics for {reference_column} vs {len(response_columns)} response columns...")
+    
+    for response_col in response_columns:
+        print(f"Processing {response_col}...")
+        
+        # Check if metrics columns already exist for this response column
+        existing_columns = [f"{response_col}_{metric}" for metric in metric_names]
+        columns_exist = all(col in result_df.columns for col in existing_columns)
+        
+        if columns_exist and not force_recompute:
+            print(f"  Metrics columns already exist for {response_col}, skipping...")
+            continue
+        
+        # Calculate metrics for each row
+        metrics_data = {metric: [] for metric in metric_names}
+        
+        # Create iterator with progress bar if requested
+        iterator = result_df.iterrows()
+        if show_progress:
+            iterator = tqdm(iterator, total=len(result_df), desc=f"Computing {response_col}")
+        
+        for idx, row in iterator:
+            try:
+                reference_code = str(row[reference_column])
+                response_code = str(row[response_col])
+                
+                # Skip if either code is empty or NaN
+                if pd.isna(reference_code) or pd.isna(response_code) or reference_code == "" or response_code == "":
+                    # Add NaN values for all metrics
+                    for metric in metric_names:
+                        metrics_data[metric].append(float('nan'))
+                    continue
+                
+                # Calculate metrics
+                metrics = diff_score(reference_code, response_code)
+                
+                # Store each metric
+                for metric in metric_names:
+                    metrics_data[metric].append(metrics[metric])
+                    
+            except Exception as e:
+                print(f"  Error calculating metrics for row {idx}: {e}")
+                # Add NaN values for all metrics on error
+                for metric in metric_names:
+                    metrics_data[metric].append(float('nan'))
+        
+        # Add metric columns to dataframe
+        for metric in metric_names:
+            # Remove 'response_' prefix from response column name
+            clean_response_col = response_col.replace("response_", "")
+            column_name = f"metric_{clean_response_col}_{metric}"
+            result_df[column_name] = metrics_data[metric]
+        
+        print(f"  Added {len(metric_names)} metric columns for {response_col}")
+    
+    print(f"Completed! Added metrics for {len(response_columns)} response columns.")
+    return result_df
+
+
+def get_metrics_columns(df: pd.DataFrame, response_column: str) -> List[str]:
+    """Get the names of metrics columns for a specific response column.
+    
+    Args:
+        df (pd.DataFrame): Input dataframe
+        response_column (str): Name of the response column
+        
+    Returns:
+        List[str]: List of metrics column names for the response column
+    """
+    # Get expected metric names from a sample calculation
+    sample_metrics = diff_score("", "")
+    metric_names = list(sample_metrics.keys())
+    
+    # Remove 'response_' prefix from response column name
+    clean_response_col = response_column.replace("response_", "")
+    
+    # Check which metrics columns exist
+    expected_columns = [f"metric_{clean_response_col}_{metric}" for metric in metric_names]
+    existing_columns = [col for col in expected_columns if col in df.columns]
+    
+    return existing_columns
+
+
+def has_metrics_columns(df: pd.DataFrame, response_column: str) -> bool:
+    """Check if metrics columns exist for a specific response column.
+    
+    Args:
+        df (pd.DataFrame): Input dataframe
+        response_column (str): Name of the response column
+        
+    Returns:
+        bool: True if all metrics columns exist, False otherwise
+    """
+    # Get expected metric names from a sample calculation
+    sample_metrics = diff_score("", "")
+    metric_names = list(sample_metrics.keys())
+    
+    # Remove 'response_' prefix from response column name
+    clean_response_col = response_column.replace("response_", "")
+    
+    # Check if all expected columns exist
+    expected_columns = [f"metric_{clean_response_col}_{metric}" for metric in metric_names]
+    missing_columns = [col for col in expected_columns if col not in df.columns]
+    
+    if missing_columns:
+        print(f"Missing metrics columns for {response_column}: {missing_columns}")
+        return False
+    
+    return True
