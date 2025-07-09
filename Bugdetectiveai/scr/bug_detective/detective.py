@@ -39,7 +39,7 @@ async def process_prompt_dataset(
         ValueError: If required columns are missing from the dataset
     """
     # Validate required columns
-    required_columns = ["before_merge", "full_traceback"]
+    required_columns = ["before_merge_without_docstrings", "full_traceback"]
     missing_columns = [
         col for col in required_columns if col not in prompt_dataset.columns
     ]
@@ -83,7 +83,7 @@ async def process_prompt_dataset(
 
                 # Build correction prompt
                 prompt = prompt_builder.build_correction_prompt(
-                    buggy_code=str(row["before_merge"]),
+                    buggy_code=str(row["before_merge_without_docstrings"]),
                     traceback_error=str(row["full_traceback"]),
                 )
 

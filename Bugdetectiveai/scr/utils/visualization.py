@@ -176,3 +176,155 @@ def compare_groundtruth_vs_corrected_histograms(groundtruth_codes, corrected_cod
         available_metrics=available_metrics,
         stat_title="GROUNDTRUTH VS CORRECTED METRICS STATISTICS",
     )
+
+
+def plot_metrics_boxplots(
+    df, 
+    reference_column="after_merge_without_docstrings", 
+    response_columns=None, 
+    figsize=(20, 12),
+    title_prefix="Metrics Comparison"
+):
+    """
+    Create boxplots for all diff_score metrics across multiple response columns.
+    
+    Args:
+        df (pd.DataFrame): Input dataset containing code columns
+        reference_column (str): Name of the reference code column (default: "buggy_code")
+        response_columns (list): List of response column names to compare against reference.
+                               If None, will automatically find all columns starting with "response_"
+        figsize (tuple): Figure size as (width, height) (default: (20, 12))
+        title_prefix (str): Prefix for the overall title (default: "Metrics Comparison")
+    """
+    # Validate reference column exists
+    assert reference_column in df.columns, (
+        f"Reference column '{reference_column}' not found. Available columns: {list(df.columns)}"
+    )
+    
+    # Auto-detect response columns if not provided
+    if response_columns is None:
+        response_columns = [col for col in df.columns if col.startswith("response_")]
+    
+    # Validate response columns exist
+    missing_columns = [col for col in response_columns if col not in df.columns]
+    if missing_columns:
+        raise ValueError(f"Response columns not found: {missing_columns}")
+    
+    if not response_columns:
+        raise ValueError("No response columns found. Please specify response_columns or ensure columns start with 'response_'")
+    
+    print(f"Comparing {reference_column} against {len(response_columns)} response columns: {response_columns}")
+    
+    # Calculate metrics for each response column
+    all_metrics_data = {}
+    
+    for response_col in response_columns:
+        print(f"Calculating metrics for {response_col}...")
+        metrics_list = []
+        
+        for idx, row in df.iterrows():
+            try:
+                reference_code = str(row[reference_column])
+                response_code = str(row[response_col])
+                
+                # Skip if either code is empty or NaN
+                if pd.isna(reference_code) or pd.isna(response_code) or reference_code == "" or response_code == "":
+                    continue
+                    
+                metrics = diff_score(reference_code, response_code)
+                metrics_list.append(metrics)
+                
+            except Exception as e:
+                print(f"Error calculating metrics for row {idx}: {e}")
+                continue
+        
+        if metrics_list:
+            # Convert list of dicts to dict of lists
+            metrics_dict = {}
+            for metric_name in metrics_list[0].keys():
+                metrics_dict[metric_name] = [m[metric_name] for m in metrics_list]
+            all_metrics_data[response_col] = metrics_dict
+        else:
+            print(f"Warning: No valid metrics calculated for {response_col}")
+    
+    if not all_metrics_data:
+        raise ValueError("No valid metrics data could be calculated for any response column")
+    
+    # Get all available metrics
+    available_metrics = list(next(iter(all_metrics_data.values())).keys())
+    
+    # Create subplots for each metric
+    n_metrics = len(available_metrics)
+    n_cols = 3
+    n_rows = (n_metrics + n_cols - 1) // n_cols
+    
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=figsize)
+    if n_rows == 1:
+        axes = axes.reshape(1, -1)
+    elif n_metrics == 1:
+        axes = axes.reshape(1, 1)
+    
+    # Create boxplots for each metric
+    for i, metric in enumerate(available_metrics):
+        row = i // n_cols
+        col = i % n_cols
+        
+        # Prepare data for boxplot
+        boxplot_data = []
+        labels = []
+        
+        for response_col in response_columns:
+            if response_col in all_metrics_data and metric in all_metrics_data[response_col]:
+                boxplot_data.append(all_metrics_data[response_col][metric])
+                labels.append(response_col.replace("response_", "").replace("_", " ").title())
+        
+        if boxplot_data:
+            # Create boxplot
+            bp = axes[row, col].boxplot(boxplot_data, labels=labels, patch_artist=True)
+            
+            # Color the boxes
+            colors = ['lightblue', 'lightgreen', 'lightcoral', 'lightyellow', 'lightpink', 'lightgray'][:len(bp['boxes'])]
+            for patch, color in zip(bp['boxes'], colors):
+                patch.set_facecolor(color)
+                patch.set_alpha(0.7)
+            
+            # Customize the plot
+            axes[row, col].set_title(f"{metric.replace('_', ' ').title()}", fontweight='bold')
+            axes[row, col].set_ylabel('Score')
+            axes[row, col].grid(True, alpha=0.3)
+            
+            # Rotate x-axis labels if needed
+            if len(labels) > 3:
+                axes[row, col].tick_params(axis='x', rotation=45)
+    
+    # Hide unused subplots
+    for i in range(n_metrics, n_rows * n_cols):
+        row = i // n_cols
+        col = i % n_cols
+        axes[row, col].set_visible(False)
+    
+    # Add overall title
+    fig.suptitle(f"{title_prefix}: {reference_column} vs Response Models", 
+                 fontsize=16, fontweight='bold', y=0.98)
+    
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.95)
+    plt.show()
+    
+    # Print summary statistics
+    print(f"\n=== SUMMARY STATISTICS ===")
+    print(f"Reference column: {reference_column}")
+    print(f"Number of response columns: {len(response_columns)}")
+    print(f"Number of metrics: {len(available_metrics)}")
+    print(f"Available metrics: {available_metrics}")
+    
+    for metric in available_metrics:
+        print(f"\n{metric.replace('_', ' ').title()}:")
+        for response_col in response_columns:
+            if response_col in all_metrics_data and metric in all_metrics_data[response_col]:
+                values = all_metrics_data[response_col][metric]
+                mean_val = np.mean(values)
+                std_val = np.std(values)
+                median_val = np.median(values)
+                print(f"  {response_col.replace('response_', '').replace('_', ' ').title()}: "
+                      f"mean={mean_val:.3f}, std={std_val:.3f}, median={median_val:.3f}")

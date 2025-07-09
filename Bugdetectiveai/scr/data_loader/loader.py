@@ -107,7 +107,7 @@ def save_data(
     Args:
         df: DataFrame to save
         file_name: Name of the file (without .pkl extension).
-                  If None, uses 'data_{current_timestamp}'
+                  If None, uses a descriptive name like 'sample_data_{num_rows}_rows_{response_names}.pkl'
         data_path: Directory to save the file.
                   If None, uses default checkpoints directory
 
@@ -120,14 +120,24 @@ def save_data(
             "/Users/zanchitta/Developer/BugDetectiveAI/Bugdetectiveai/data/checkpoints"
         )
 
-    # Set default filename
+    # Set default filename with descriptive info if not provided
     if file_name is None:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        file_name = f"data_{timestamp}"
+        num_rows = len(df)
+        response_columns = [col for col in df.columns if "response_" in col]
+        if response_columns:
+            response_names = "_".join([col.replace("response_", "") for col in response_columns])
+        else:
+            response_names = "no_responses"
+        file_name = f"sample_data_{num_rows}_rows_{response_names}.pkl"
+    else:
+        # Ensure .pkl extension
+        if not file_name.endswith(".pkl"):
+            file_name += ".pkl"
 
-    # Ensure .pkl extension
-    if not file_name.endswith(".pkl"):
-        file_name += ".pkl"
+    # Full file path
+    file_path = os.path.join(data_path, file_name)
+
+    return save_pickle_file(df, file_path)
 
     # Full file path
     file_path = os.path.join(data_path, file_name)
