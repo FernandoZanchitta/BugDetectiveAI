@@ -163,7 +163,7 @@ def compare_metrics_versus_bug_histograms(
             # Use stored metrics for visualization
             compare_metrics_histograms_from_stored(df, response_columns, title_prefix="Bug vs Response Models")
             return
-    
+    print("Not Using Stored data - Evaluating Metrics...")
     # Original implementation for computing metrics on-the-fly
     # Calculate diff scores (returns dict with all metrics)
     bug_vs_corrected_diff = [
@@ -771,3 +771,203 @@ def plot_metrics_histograms(
         available_metrics=available_metrics,
         stat_title=f"{title_prefix} STATISTICS"
     )
+
+
+def create_metrics_summary_table(
+    df: pd.DataFrame,
+    response_columns: List[str],
+    title: str = "Metrics Summary Table",
+    show_std: bool = True,
+    show_count: bool = True,
+    round_digits: int = 3
+) -> pd.DataFrame:
+    """
+    Create a summary table with statistics (mean and variance) for each metric across different models.
+    
+    Args:
+        df (pd.DataFrame): Input dataset containing pre-computed metrics columns
+        response_columns (List[str]): List of response column names
+        title (str): Title for the table (default: "Metrics Summary Table")
+        show_std (bool): If True, show standard deviation instead of variance (default: True)
+        show_count (bool): If True, show count of valid samples (default: True)
+        round_digits (int): Number of decimal places to round results (default: 3)
+    
+    Returns:
+        pd.DataFrame: Summary table with models as rows and metrics as columns
+        
+    Raises:
+        ValueError: If no valid metrics data is found
+    """
+    if not response_columns:
+        raise ValueError("No response columns provided")
+    
+    # Get all available metrics from the first response column
+    first_response_col = response_columns[0]
+    if not has_metrics_columns(df, first_response_col):
+        raise ValueError(f"No metrics columns found for {first_response_col}")
+    
+    metrics_columns = get_metrics_columns(df, first_response_col)
+    # Remove 'response_' prefix from response column name for metric name extraction
+    clean_first_response_col = first_response_col.replace("response_", "")
+    metric_names = [col.replace(f"metric_{clean_first_response_col}_", "") for col in metrics_columns]
+    
+    print(f"Creating metrics summary table for {len(response_columns)} response columns...")
+    
+    # Initialize summary data
+    summary_data = {}
+    model_names = []
+    
+    for response_col in response_columns:
+        # Remove 'response_' prefix from response column name
+        clean_response_col = response_col.replace("response_", "")
+        model_name = clean_response_col.replace("_", " ").title()
+        model_names.append(model_name)
+        
+        model_stats = {}
+        
+        for metric in metric_names:
+            metric_column = f"metric_{clean_response_col}_{metric}"
+            if metric_column in df.columns:
+                # Remove NaN values
+                values = df[metric_column].dropna()
+                
+                if len(values) > 0:
+                    mean_val = values.mean()
+                    if show_std:
+                        stat_val = values.std()
+                        stat_label = "std"
+                    else:
+                        stat_val = values.var()
+                        stat_label = "var"
+                    
+                    # Format the statistic string
+                    if show_count:
+                        stat_str = f"{mean_val:.{round_digits}f} ± {stat_val:.{round_digits}f} (n={len(values)})"
+                    else:
+                        stat_str = f"{mean_val:.{round_digits}f} ± {stat_val:.{round_digits}f}"
+                    
+                    model_stats[metric] = stat_str
+                else:
+                    model_stats[metric] = "N/A"
+            else:
+                model_stats[metric] = "Missing"
+        
+        summary_data[model_name] = model_stats
+    
+    if not summary_data:
+        raise ValueError("No valid metrics data found for any response column")
+    
+    # Create DataFrame from summary data
+    summary_df = pd.DataFrame(summary_data).T
+    
+    # Print the table
+    print(f"\n=== {title} ===")
+    print(f"Models: {len(model_names)}")
+    print(f"Metrics: {len(metric_names)}")
+    print(f"Statistics shown: mean ± {stat_label}")
+    if show_count:
+        print("Sample counts shown in parentheses")
+    print()
+    
+    # Display the table
+    print(summary_df.to_string())
+    
+    # Print additional summary
+    print(f"\nTable shape: {summary_df.shape}")
+    print(f"Available metrics: {list(metric_names)}")
+    print(f"Models analyzed: {list(model_names)}")
+    
+    return summary_df
+
+
+def create_metrics_summary_table_detailed(
+    df: pd.DataFrame,
+    response_columns: List[str],
+    title: str = "Detailed Metrics Summary Table",
+    round_digits: int = 3
+) -> pd.DataFrame:
+    """
+    Create a detailed summary table with mean, std, min, max, and count for each metric across different models.
+    
+    Args:
+        df (pd.DataFrame): Input dataset containing pre-computed metrics columns
+        response_columns (List[str]): List of response column names
+        title (str): Title for the table (default: "Detailed Metrics Summary Table")
+        round_digits (int): Number of decimal places to round results (default: 3)
+    
+    Returns:
+        pd.DataFrame: Detailed summary table with models as rows and metrics as columns
+    """
+    if not response_columns:
+        raise ValueError("No response columns provided")
+    
+    # Get all available metrics from the first response column
+    first_response_col = response_columns[0]
+    if not has_metrics_columns(df, first_response_col):
+        raise ValueError(f"No metrics columns found for {first_response_col}")
+    
+    metrics_columns = get_metrics_columns(df, first_response_col)
+    # Remove 'response_' prefix from response column name for metric name extraction
+    clean_first_response_col = first_response_col.replace("response_", "")
+    metric_names = [col.replace(f"metric_{clean_first_response_col}_", "") for col in metrics_columns]
+    
+    print(f"Creating detailed metrics summary table for {len(response_columns)} response columns...")
+    
+    # Initialize summary data
+    summary_data = {}
+    model_names = []
+    
+    for response_col in response_columns:
+        # Remove 'response_' prefix from response column name
+        clean_response_col = response_col.replace("response_", "")
+        model_name = clean_response_col.replace("_", " ").title()
+        model_names.append(model_name)
+        
+        model_stats = {}
+        
+        for metric in metric_names:
+            metric_column = f"metric_{clean_response_col}_{metric}"
+            if metric_column in df.columns:
+                # Remove NaN values
+                values = df[metric_column].dropna()
+                
+                if len(values) > 0:
+                    mean_val = values.mean()
+                    std_val = values.std()
+                    min_val = values.min()
+                    max_val = values.max()
+                    count_val = len(values)
+                    
+                    # Format the detailed statistic string
+                    stat_str = f"μ={mean_val:.{round_digits}f}, σ={std_val:.{round_digits}f}, min={min_val:.{round_digits}f}, max={max_val:.{round_digits}f}, n={count_val}"
+                    
+                    model_stats[metric] = stat_str
+                else:
+                    model_stats[metric] = "N/A"
+            else:
+                model_stats[metric] = "Missing"
+        
+        summary_data[model_name] = model_stats
+    
+    if not summary_data:
+        raise ValueError("No valid metrics data found for any response column")
+    
+    # Create DataFrame from summary data
+    summary_df = pd.DataFrame(summary_data).T
+    
+    # Print the table
+    print(f"\n=== {title} ===")
+    print(f"Models: {len(model_names)}")
+    print(f"Metrics: {len(metric_names)}")
+    print("Statistics shown: μ=mean, σ=std, min, max, n=count")
+    print()
+    
+    # Display the table
+    print(summary_df.to_string())
+    
+    # Print additional summary
+    print(f"\nTable shape: {summary_df.shape}")
+    print(f"Available metrics: {list(metric_names)}")
+    print(f"Models analyzed: {list(model_names)}")
+    
+    return summary_df
