@@ -4,7 +4,7 @@ Supports OpenRouter models, optimized for code generation.
 """
 
 from .base_model import BaseLLMModel, ModelConfig, StructuredOutput
-from .open_router import OpenRouterLLMModel, create_openrouter_model
+from .open_router import OpenRouterLLMModel, create_openrouter_model, create_apr_model
 
 __all__ = [
     "BaseLLMModel",
@@ -12,6 +12,7 @@ __all__ = [
     "StructuredOutput",
     "OpenRouterLLMModel",
     "create_openrouter_model",
+    "create_apr_model",
 ]
 models = {
     "qwen": {

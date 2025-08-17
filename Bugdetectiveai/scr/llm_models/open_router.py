@@ -52,9 +52,15 @@ class OpenRouterLLMModel(BaseLLMModel):
 IMPORTANT: Return ONLY the corrected/requested code. Do not include any explanations, comments about the changes, or other text. Just return the pure code.
 """
 
+            # Build messages array with optional system prompt
+            messages = []
+            if self.config.system_prompt:
+                messages.append({"role": "system", "content": self.config.system_prompt})
+            messages.append({"role": "user", "content": code_prompt})
+            # print(messages)
             response = await self.client.chat.completions.create(
                 model=self.config.model_name,
-                messages=[{"role": "user", "content": code_prompt}],
+                messages=messages,
                 temperature=self.config.temperature,
                 max_tokens=self.config.max_tokens,
             )
@@ -254,6 +260,7 @@ def create_openrouter_model(
     api_key: Optional[str] = None,
     temperature: float = 0.0,
     max_tokens: Optional[int] = None,
+    system_prompt: Optional[str] = None,
 ) -> OpenRouterLLMModel:
     """Create an OpenRouter model instance for code generation.
 
@@ -262,6 +269,7 @@ def create_openrouter_model(
         api_key: OpenRouter API key (will use env var if not provided)
         temperature: Sampling temperature (default 0.0 for consistent code generation)
         max_tokens: Maximum tokens to generate
+        system_prompt: Optional system prompt to guide the model behavior
 
     Returns:
         OpenRouterLLMModel instance optimized for code generation
@@ -271,5 +279,50 @@ def create_openrouter_model(
         api_key=api_key,
         temperature=temperature,
         max_tokens=max_tokens,
+        system_prompt=system_prompt,
     )
+    return OpenRouterLLMModel(config)
+
+
+def create_apr_model(
+    model_name: str = "anthropic/claude-3.5-sonnet",
+    api_key: Optional[str] = None,
+    temperature: float = 0.0,
+    max_tokens: Optional[int] = None,
+) -> OpenRouterLLMModel:
+    """Create an OpenRouter model instance specifically for Automatic Program Repair (APR).
+
+    Args:
+        model_name: The model to use (e.g., 'anthropic/claude-3.5-sonnet', 'openai/gpt-4')
+        api_key: OpenRouter API key (will use env var if not provided)
+        temperature: Sampling temperature (default 0.0 for consistent code generation)
+        max_tokens: Maximum tokens to generate
+
+    Returns:
+        OpenRouterLLMModel instance configured for APR with appropriate system prompt
+    """
+    # Read APR prompt directly from file
+    prompts_file = os.path.join(os.path.dirname(__file__), "system_prompts.txt")
+    apr_prompt = ""
+    
+    if os.path.exists(prompts_file):
+        with open(prompts_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+            # Extract APR prompt (between [apr] and next [type] or end)
+            start = content.find('[apr]')
+            if start != -1:
+                start = content.find('\n', start) + 1
+                end = content.find('[', start)
+                if end == -1:
+                    end = len(content)
+                apr_prompt = content[start:end].strip()
+    
+    config = ModelConfig(
+        model_name=model_name,
+        api_key=api_key,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        system_prompt=apr_prompt,
+    )
+
     return OpenRouterLLMModel(config)

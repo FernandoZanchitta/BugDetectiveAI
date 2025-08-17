@@ -216,7 +216,7 @@ def diff_score(before_code: str, after_code: str) -> Dict[str, float]:
     codebleu_metrics = codebleu(after_code, before_code)
 
     return {
-        "exact_match": exact_match_score,
+        # "exact_match": exact_match_score,
         "ast_score": ast_score,
         "text_score": text_score,
         "ast_score_normalized": ast_score_normalized,
