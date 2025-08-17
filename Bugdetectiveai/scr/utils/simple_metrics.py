@@ -390,3 +390,223 @@ def has_metrics_columns(df: pd.DataFrame, response_column: str) -> bool:
         return False
     
     return True
+
+
+def wilcoxon_test(
+    df: pd.DataFrame,
+    response_column1: str,
+    response_column2: str,
+    metric_name: str = "ast_score",
+    reference_column: str = "after_merge_without_docstrings",
+    alternative: str = "two-sided"
+) -> Dict[str, float]:
+    """Perform Wilcoxon signed-rank test between two response columns for a specific metric.
+    
+    This function compares the performance of two different response columns (e.g., different LLM models)
+    using the Wilcoxon signed-rank test, which is appropriate for paired samples and doesn't assume
+    normal distribution.
+    
+    Args:
+        df (pd.DataFrame): DataFrame containing the data
+        response_column1 (str): First response column name (e.g., "response_gpt4")
+        response_column2 (str): Second response column name (e.g., "response_claude")
+        metric_name (str): Name of the metric to compare (default: "ast_score")
+        reference_column (str): Reference column used for metric calculation
+        alternative (str): Alternative hypothesis: "two-sided", "greater", or "less" (default: "two-sided")
+    
+    Returns:
+        Dict[str, float]: Dictionary containing test results:
+            - statistic: Wilcoxon test statistic
+            - pvalue: p-value for the test
+            - mean_diff: Mean difference (col2 - col1)
+            - median_diff: Median difference (col2 - col1)
+            - effect_size: Effect size (Z/sqrt(N))
+            - significant: Boolean indicating if p < 0.05
+    
+    Raises:
+        ValueError: If required columns don't exist
+        ImportError: If scipy is not available
+    """
+    try:
+        from scipy import stats
+    except ImportError:
+        raise ImportError("scipy is required for Wilcoxon test. Install with: poetry add scipy")
+    
+    # Get metric column names
+    clean_col1 = response_column1.replace("response_", "")
+    clean_col2 = response_column2.replace("response_", "")
+    
+    metric_col1 = f"metric_{clean_col1}_{metric_name}"
+    metric_col2 = f"metric_{clean_col2}_{metric_name}"
+    
+    # Validate columns exist
+    missing_columns = []
+    for col in [response_column1, response_column2, metric_col1, metric_col2]:
+        if col not in df.columns:
+            missing_columns.append(col)
+    
+    if missing_columns:
+        raise ValueError(f"Missing columns: {missing_columns}")
+    
+    # Extract metric values, filtering out NaN values
+    values1 = df[metric_col1].dropna()
+    values2 = df[metric_col2].dropna()
+    
+    # Ensure we have the same indices for paired comparison
+    common_idx = values1.index.intersection(values2.index)
+    if len(common_idx) < 3:
+        raise ValueError(f"Insufficient paired data: only {len(common_idx)} valid pairs found")
+    
+    paired_values1 = values1.loc[common_idx]
+    paired_values2 = values2.loc[common_idx]
+    
+    # Perform Wilcoxon test
+    statistic, pvalue = stats.wilcoxon(
+        paired_values1, 
+        paired_values2, 
+        alternative=alternative
+    )
+    
+    # Calculate descriptive statistics
+    differences = paired_values2 - paired_values1
+    mean_diff = differences.mean()
+    median_diff = differences.median()
+    
+    # Calculate effect size (Z/sqrt(N))
+    n = len(common_idx)
+    effect_size = abs(statistic) / (n * (n + 1) / 2) ** 0.5
+    
+    # Determine significance
+    significant = pvalue < 0.05
+    
+    return {
+        "statistic": statistic,
+        "pvalue": pvalue,
+        "mean_diff": mean_diff,
+        "median_diff": median_diff,
+        "effect_size": effect_size,
+        "significant": significant,
+        "n_pairs": n,
+        "alternative": alternative
+    }
+
+
+def compare_multiple_responses(
+    df: pd.DataFrame,
+    response_columns: List[str],
+    metric_name: str = "ast_score",
+    reference_column: str = "after_merge_without_docstrings",
+    alpha: float = 0.05
+) -> pd.DataFrame:
+    """Compare multiple response columns using pairwise Wilcoxon tests.
+    
+    This function performs pairwise comparisons between all response columns for a given metric,
+    creating a comprehensive comparison matrix.
+    
+    Args:
+        df (pd.DataFrame): DataFrame containing the data
+        response_columns (List[str]): List of response column names to compare
+        metric_name (str): Name of the metric to compare (default: "ast_score")
+        reference_column (str): Reference column used for metric calculation
+        alpha (float): Significance level (default: 0.05)
+    
+    Returns:
+        pd.DataFrame: DataFrame with pairwise comparison results
+    """
+    results = []
+    
+    for i, col1 in enumerate(response_columns):
+        for j, col2 in enumerate(response_columns):
+            if i >= j:  # Skip self-comparisons and duplicate pairs
+                continue
+                
+            try:
+                test_result = wilcoxon_test(
+                    df, col1, col2, metric_name, reference_column
+                )
+                
+                results.append({
+                    "response_1": col1,
+                    "response_2": col2,
+                    "metric": metric_name,
+                    "statistic": test_result["statistic"],
+                    "pvalue": test_result["pvalue"],
+                    "mean_diff": test_result["mean_diff"],
+                    "median_diff": test_result["median_diff"],
+                    "effect_size": test_result["effect_size"],
+                    "significant": test_result["significant"],
+                    "n_pairs": test_result["n_pairs"]
+                })
+                
+            except Exception as e:
+                print(f"Error comparing {col1} vs {col2}: {e}")
+                continue
+    
+    if not results:
+        return pd.DataFrame()
+    
+    return pd.DataFrame(results)
+
+
+def print_wilcoxon_summary(
+    df: pd.DataFrame,
+    response_columns: List[str],
+    metric_name: str = "ast_score",
+    reference_column: str = "after_merge_without_docstrings"
+):
+    """Print a formatted summary of Wilcoxon test results.
+    
+    Args:
+        df (pd.DataFrame): DataFrame containing the data
+        response_columns (List[str]): List of response column names to compare
+        metric_name (str): Name of the metric to compare
+        reference_column (str): Reference column used for metric calculation
+    """
+    print(f"\n{'='*60}")
+    print(f"WILCOXON TEST SUMMARY")
+    print(f"{'='*60}")
+    print(f"Metric: {metric_name}")
+    print(f"Reference: {reference_column}")
+    print(f"Response columns: {len(response_columns)}")
+    print(f"{'='*60}")
+    
+    # Perform pairwise comparisons
+    comparison_df = compare_multiple_responses(
+        df, response_columns, metric_name, reference_column
+    )
+    
+    if comparison_df.empty:
+        print("No valid comparisons found.")
+        return
+    
+    # Print results
+    for _, row in comparison_df.iterrows():
+        print(f"\n{row['response_1']} vs {row['response_2']}")
+        print(f"  Statistic: {row['statistic']:.4f}")
+        print(f"  p-value: {row['pvalue']:.6f}")
+        print(f"  Mean diff (col2-col1): {row['mean_diff']:.6f}")
+        print(f"  Median diff (col2-col1): {row['median_diff']:.6f}")
+        print(f"  Effect size: {row['effect_size']:.4f}")
+        print(f"  Significant (α=0.05): {'Yes' if row['significant'] else 'No'}")
+        print(f"  N pairs: {row['n_pairs']}")
+    
+    # Summary statistics
+    significant_comparisons = comparison_df[comparison_df['significant']].shape[0]
+    total_comparisons = comparison_df.shape[0]
+    
+    print(f"\n{'='*60}")
+    print(f"SUMMARY STATISTICS")
+    print(f"{'='*60}")
+    print(f"Total comparisons: {total_comparisons}")
+    print(f"Significant differences: {significant_comparisons}")
+    print(f"Significance rate: {significant_comparisons/total_comparisons*100:.1f}%")
+    
+    # Effect size interpretation
+    small_effects = comparison_df[comparison_df['effect_size'] < 0.1].shape[0]
+    medium_effects = comparison_df[(comparison_df['effect_size'] >= 0.1) & (comparison_df['effect_size'] < 0.3)].shape[0]
+    large_effects = comparison_df[comparison_df['effect_size'] >= 0.3].shape[0]
+    
+    print(f"\nEffect sizes:")
+    print(f"  Small (<0.1): {small_effects}")
+    print(f"  Medium (0.1-0.3): {medium_effects}")
+    print(f"  Large (≥0.3): {large_effects}")
