@@ -109,7 +109,7 @@ def save_data(
         file_name: Name of the file (without .pkl extension).
                   If None, uses a descriptive name like 'sample_data_{num_rows}_rows_{response_names}.pkl'
         data_path: Directory to save the file.
-                  If None, uses default checkpoints directory
+                  If None, uses default data directory
 
     Returns:
         Full path to the saved file
@@ -117,7 +117,7 @@ def save_data(
     # Set default path
     if data_path is None:
         data_path = (
-            "/Users/zanchitta/Developer/BugDetectiveAI/Bugdetectiveai/data/checkpoints"
+            "/Users/zanchitta/Developer/BugDetectiveAI/Bugdetectiveai/data"
         )
 
     # Set default filename with descriptive info if not provided
@@ -139,11 +139,6 @@ def save_data(
 
     return save_pickle_file(df, file_path)
 
-    # Full file path
-    file_path = os.path.join(data_path, file_name)
-
-    return save_pickle_file(df, file_path)
-
 
 def load_data(file_name: str, data_path: Optional[str] = None) -> pd.DataFrame:
     """
@@ -152,7 +147,7 @@ def load_data(file_name: str, data_path: Optional[str] = None) -> pd.DataFrame:
     Args:
         file_name: Name of the file (with or without .pkl extension)
         data_path: Directory where the file is located.
-                  If None, uses default checkpoints directory
+                  If None, uses default data directory
 
     Returns:
         Loaded DataFrame
@@ -160,7 +155,7 @@ def load_data(file_name: str, data_path: Optional[str] = None) -> pd.DataFrame:
     # Set default path
     if data_path is None:
         data_path = (
-            "/Users/zanchitta/Developer/BugDetectiveAI/Bugdetectiveai/data/checkpoints"
+            "/Users/zanchitta/Developer/BugDetectiveAI/Bugdetectiveai/data"
         )
 
     # Ensure .pkl extension
