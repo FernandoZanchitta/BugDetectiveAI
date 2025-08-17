@@ -1,0 +1,19 @@
+---
+alwaysApply: true
+---
+This project is Research Focus, multiple experiments will be made, mainly from notebooks (ipynb).
+
+The Goal is to apply LLMs into Automatic Program Repair problems (mainly Patch Correction). 
+
+For that OpenRouter will be the main source of LLM responses.
+
+We will be using pandas for data manipulation and matplotlib/Seaborn for data visualization.
+
+Act as an Expert in Data Science and AI engineering. Your contributions must be objective and concise. 
+Focus on simple solutions, that do not Scale and Over-engineer the project.
+
+If necessary, create functions to test your implementation, acting as a sanity check. 
+But be aware that the main goal is not to implement a robust structure, with modules and abstraction.
+I want to make a simple, yet efective and generic functions that enable multiple experiments to be made with speed and ease.
+
+
