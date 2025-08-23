@@ -169,3 +169,36 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# LaTeX build files
+# These are automatically generated every time you build your LaTeX document
+*.aux
+*.bbl
+*.blg
+*.bcf
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.lof
+*.lot
+*.idx
+*.ind
+*.acn
+*.acr
+*.alg
+*.glg
+*.glo
+*.gls
+*.ist
+*.nav
+*.snm
+*.vrb
+
+# LaTeX build directories
+tmp/
+output/
+build/
