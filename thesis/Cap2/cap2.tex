@@ -7,9 +7,9 @@ In this context, Large Language Models (LLMs) are capable of capturing code patt
 On the other hand, LLMs exhibit significant sensitivity to how their instructions (prompts) are phrased. Different instructions can alter the fidelity to the original style, the clarity of the patch, and the size of the modification, especially if little context is provided during the correction process (insert ref).
 
 \subsection{Dataset}
-% TODO: adicionar referencia de pytracebugs
+
 The experiment uses the Pytracebugs dataset \cite{Pytracebugs}, which contains Python source codes from GitHub repositories at the granularity of function snippets and their corresponding Traceback errors; see the example below.
-% TODO: referencia ao exemplo
+
 
 \begin{figure}[h!]
     \centering
@@ -61,6 +61,14 @@ def noise(self, value):
     \end{lstlisting}
 \end{figure}
 
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.7\textwidth]{Cap2/dataset-traceback-type.png}
+    \caption{Distribution of Error Types in the dataset - Less than 1\% relevant are consolidated into 'others' category.}
+    \label{fig:dataset-traceback-types}
+\end{figure}
+
+Most frequent traceback errors can be found in Figure \ref{fig:dataset-traceback-types}, with the most frequent ones being Atribute Error and TypeError with $16.84\%$ and $16\%$ of the values respectivelly. Also, there is a significant amount of erros that appear less than $1\%$ of the time, and were aggregated into the 'Others' Category.
 
 %TODO: Adicionar exemplos de trabalhos publicados que utilizam como referencia o dataset proposto.
 Some published works that use this dataset aim to study problems such as Vulnerability Detection \cite{zhao2024coding} and fault localization \cite{kulkarni2024graph}.
@@ -68,8 +76,7 @@ Some published works that use this dataset aim to study problems such as Vulnera
 \subsection{LLM Models}
 For the first experiment, four models were chosen. Two of these are open-source models specialized in code generation, considered state-of-the-art in this category: Qwen 2.5 coder 32b (instruct) \cite{hui2024qwen25codertechnicalreport} and Codestral 2501 \cite{Codestral_202501}. Additionally, two state-of-the-art, commonly used closed-source models of a relatively similar size were selected: Claude $3.5$ Sonnet and GPT $4o$ Model.
 
-Esses modelos apesar de todos competitivos similarmente em benchmarks estruturados, diferem-se consideravelmente em questões de Preço durante a usabilidade.
-Para referência o custo por token dos modelos escolhidos pode ser visto na tabela \ref{tab:model-tokens}
+Although these models are all similarly competitive in structured benchmarks, they differ considerably in terms of usage cost. For reference, the token cost for each selected model is shown in Table \ref{tab:model-tokens}.
 \begin{table}[h!]
 \centering
 \caption{Token usage price per model.}
@@ -213,14 +220,14 @@ These results provide a comprehensive foundation for understanding the effective
 \subsubsection{Statistical Significance Analysis}
 To rigorously evaluate the observed performance differences, we conducted comprehensive statistical testing using the Wilcoxon signed-rank test with multiple comparison corrections. Our analysis focused on identifying statistically significant differences (p < 0.001) across prompt conditions while controlling for multiple testing effects through Bonferroni correction. The statistical analysis reveals several critical insights that complement the descriptive statistics presented above.
 
-For the AST normalized score, we observed significant differences between baseline and system prompt conditions for Claude 3.5 Sonnet (p = 7.41×10⁻⁸, effect size = 0.225) and between system and style-aware prompts (p = 3.60×10⁻⁴, effect size = 0.682). Similarly, Qwen 2.5 Coder 32B showed significant improvements in AST normalized scores when comparing system to style-aware prompts (p = 8.65×10⁻⁵, effect size = 0.271). In terms of CodeBLEU performance, GPT-4o demonstrated statistically significant improvements between baseline and style-aware prompts (p = 1.65×10⁻⁵, effect size = 0.333), suggesting that explicit style preservation instructions can enhance semantic similarity in generated patches.
+For the AST normalized score, we observed significant differences between baseline and system prompt conditions for Claude 3.5 Sonnet (p = 7.41$\times$10$^{-8}$, effect size = 0.225) and between system and style-aware prompts (p = 3.60$\times$10$^{-4}$, effect size = 0.682). Similarly, Qwen 2.5 Coder 32B showed significant improvements in AST normalized scores when comparing system to style-aware prompts (p = 8.65$\times$10$^{-5}$, effect size = 0.271). In terms of CodeBLEU performance, GPT-4o demonstrated statistically significant improvements between baseline and style-aware prompts (p = 1.65$\times$10$^{-5}$, effect size = 0.333), suggesting that explicit style preservation instructions can enhance semantic similarity in generated patches.
 
 These statistically significant findings, combined with the descriptive statistics, provide strong evidence that prompt engineering choices have measurable and meaningful impacts on LLM-based program repair performance, particularly in the domains of structural similarity (AST scores) and semantic preservation (CodeBLEU metrics).
 
 \subsubsection{Model Performance Comparisons}
 Beyond prompt engineering effects, our statistical analysis reveals significant performance differences between models within each prompt condition. These within-dataset comparisons (p < 0.001) provide insights into the relative capabilities of different LLM architectures for automated program repair tasks.
 
-Across all prompt conditions, Codestral 2501 consistently demonstrates superior performance, significantly outperforming other models in CodeBLEU scores. In the baseline condition, Codestral 2501 achieves significantly higher CodeBLEU scores compared to Claude 3.5 Sonnet (p = 3.62×10⁻²⁰, effect size = 0.222), Qwen 2.5 Coder 32B (p = 1.16×10⁻⁶, effect size = 0.682), and GPT-4o (p = 5.55×10⁻¹⁴, effect size = 0.741). This pattern persists across system and style-aware prompts, with Codestral 2501 maintaining its performance advantage with effect sizes ranging from 0.679 to 0.741.
+Across all prompt conditions, Codestral 2501 consistently demonstrates superior performance, significantly outperforming other models in CodeBLEU scores. In the baseline condition, Codestral 2501 achieves significantly higher CodeBLEU scores compared to Claude 3.5 Sonnet (p = 3.62$\times$10$^{-20}$, effect size = 0.222), Qwen 2.5 Coder 32B (p = 1.16$\times$10$^{-6}$, effect size = 0.682), and GPT-4o (p = 5.55$\times$10$^{-14}$, effect size = 0.741). This pattern persists across system and style-aware prompts, with Codestral 2501 maintaining its performance advantage with effect sizes ranging from 0.679 to 0.741.
 
 The analysis also reveals interesting model-specific patterns: Claude 3.5 Sonnet consistently ranks lowest in CodeBLEU performance across all prompt conditions, while Qwen 2.5 Coder 32B shows competitive performance, particularly in the style-aware condition where it achieves the highest text score (0.80 ± 0.22). GPT-4o demonstrates intermediate performance, showing significant improvements with style-aware prompts but remaining consistently below Codestral 2501 across all metrics.
 
@@ -314,11 +321,11 @@ The win/loss percentages provide additional insights into model performance: Cod
 
 % Devido ao fato de que no máximo $n_{a}$ coordenadas generalizadas (ângulos das juntas ou variáveis cartesianas) podem ser controladas num dado instante, o vetor de coordenadas generalizadas é dividido em duas partes, representando as coordenadas generalizadas ativas e as coordenadas generalizadas passivas \cite{Callaghan1995}.
 
-% \begin{figure}[ht]
-% \centering
-% \includegraphics[width=0.75\textwidth]{Cap2/spiderrobot}
-% \caption{Cupim cibernético.}\label{FDIII}
-% \end{figure}
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.75\textwidth]{Cap2/spiderrobot}
+\caption{Cupim cibernético.}\label{FDIII}
+\end{figure}
 
 % Considerando um robô manipulador rígido, malha aberta, e de $n$-juntas em série. Seja $q$ a representação de seu vetor de posição angular das juntas  e $\tau$ a representação de seu vetor de torque. A equação dinâmica pelo método de
 % Lagrange é dada por:

@@ -4,6 +4,7 @@ import logging
 from typing import Dict, Tuple, List, Optional
 import pandas as pd
 from codebleu import calc_codebleu
+import numpy as np
 
 # Constants
 DEFAULT_CODEBLEU_WEIGHTS = (0.1, 0.4, 0.1, 0.4)
@@ -610,3 +611,213 @@ def print_wilcoxon_summary(
     print(f"  Small (<0.1): {small_effects}")
     print(f"  Medium (0.1-0.3): {medium_effects}")
     print(f"  Large (≥0.3): {large_effects}")
+
+
+def aggregate_metrics_summary(
+    dataframes: List[pd.DataFrame],
+    category_column: str = "prompt",
+    model_names: Optional[List[str]] = None
+) -> pd.DataFrame:
+    """Aggregate metrics across multiple DataFrames and return summary statistics.
+    
+    This function takes a list of DataFrames (e.g., different prompt conditions) and
+    aggregates the metrics for each model/category combination, returning mean and
+    variance for each metric.
+    
+    Args:
+        dataframes (List[pd.DataFrame]): List of DataFrames to aggregate
+        category_column (str): Column name to use as category (default: "prompt")
+        model_names (List[str], optional): List of model names to include. 
+                                         If None, will auto-detect from metric columns.
+    
+    Returns:
+        pd.DataFrame: DataFrame with rows for each model/category and columns for 
+                     metric means and variances
+                     
+    Raises:
+        ValueError: If no valid DataFrames provided or missing required columns
+    """
+    if not dataframes:
+        raise ValueError("At least one DataFrame must be provided")
+    
+    # Auto-detect model names if not provided
+    if model_names is None:
+        # Get metric columns from first DataFrame
+        metric_cols = [col for col in dataframes[0].columns if col.startswith('metric_')]
+        # Extract model names from metric column names
+        model_names = list(set([col.split('_')[1] for col in metric_cols]))
+    
+    # Get metric names from a sample calculation
+    sample_metrics = diff_score("", "")
+    metric_names = list(sample_metrics.keys())
+    
+    # Initialize results storage
+    results = []
+    
+    for df in dataframes:
+        if category_column not in df.columns:
+            print(f"Warning: Category column '{category_column}' not found in DataFrame, skipping...")
+            continue
+        
+        # Get unique categories in this DataFrame
+        categories = df[category_column].unique()
+        
+        for category in categories:
+            # Filter data for this category
+            category_data = df[df[category_column] == category]
+            
+            for model in model_names:
+                if model not in model_names:
+                    continue
+                
+                # Initialize row data
+                row_data = {
+                    'model': model,
+                    'category': category,
+                    'n_samples': len(category_data)
+                }
+                
+                # Calculate mean and variance for each metric
+                for metric in metric_names:
+                    metric_col = f'metric_{model}_{metric}'
+                    
+                    if metric_col in category_data.columns:
+                        # Get metric values, filtering out NaN
+                        metric_values = category_data[metric_col].dropna()
+                        
+                        if len(metric_values) > 0:
+                            row_data[f'{metric}_mean'] = metric_values.mean()
+                            row_data[f'{metric}_variance'] = metric_values.var()
+                            row_data[f'{metric}_std'] = metric_values.std()
+                            row_data[f'{metric}_min'] = metric_values.min()
+                            row_data[f'{metric}_max'] = metric_values.max()
+                        else:
+                            # No valid values
+                            row_data[f'{metric}_mean'] = float('nan')
+                            row_data[f'{metric}_variance'] = float('nan')
+                            row_data[f'{metric}_std'] = float('nan')
+                            row_data[f'{metric}_min'] = float('nan')
+                            row_data[f'{metric}_max'] = float('nan')
+                    else:
+                        # Metric column not found
+                        row_data[f'{metric}_mean'] = float('nan')
+                        row_data[f'{metric}_variance'] = float('nan')
+                        row_data[f'{metric}_std'] = float('nan')
+                        row_data[f'{metric}_min'] = float('nan')
+                        row_data[f'{metric}_max'] = float('nan')
+                
+                results.append(row_data)
+    
+    if not results:
+        raise ValueError("No valid data found in any DataFrame")
+    
+    # Create result DataFrame
+    result_df = pd.DataFrame(results)
+    
+    # Reorder columns for better readability
+    base_cols = ['model', 'category', 'n_samples']
+    metric_cols = []
+    
+    for metric in metric_names:
+        metric_cols.extend([
+            f'{metric}_mean', f'{metric}_variance', f'{metric}_std',
+            f'{metric}_min', f'{metric}_max'
+        ])
+    
+    # Ensure all columns exist (some might be missing if metrics weren't found)
+    existing_cols = [col for col in base_cols + metric_cols if col in result_df.columns]
+    result_df = result_df[existing_cols]
+    
+    return result_df
+
+
+def print_metrics_summary(
+    summary_df: pd.DataFrame,
+    metric_name: str = "ast_score",
+    category_column: str = "category"
+):
+    """Print a formatted summary of metrics for a specific metric.
+    
+    Args:
+        summary_df (pd.DataFrame): Summary DataFrame from aggregate_metrics_summary
+        metric_name (str): Name of the metric to display
+        category_column (str): Name of the category column
+    """
+    print(f"\n{'='*80}")
+    print(f"METRICS SUMMARY: {metric_name.upper()}")
+    print(f"{'='*80}")
+    
+    # Filter columns for this metric
+    metric_cols = [col for col in summary_df.columns if metric_name in col]
+    display_cols = ['model', category_column, 'n_samples'] + metric_cols
+    
+    # Display summary
+    display_df = summary_df[display_cols].copy()
+    
+    # Round numeric columns for better display
+    numeric_cols = display_df.select_dtypes(include=[np.number]).columns
+    display_df[numeric_cols] = display_df[numeric_cols].round(4)
+    
+    print(display_df.to_string(index=False))
+    
+    # Summary statistics
+    print(f"\n{'='*80}")
+    print(f"OVERALL SUMMARY FOR {metric_name.upper()}")
+    print(f"{'='*80}")
+    
+    # Best performing model/category combination
+    mean_col = f'{metric_name}_mean'
+    if mean_col in display_df.columns:
+        best_idx = display_df[mean_col].idxmax()
+        best_row = display_df.loc[best_idx]
+        
+        print(f"Best Performance:")
+        print(f"  Model: {best_row['model']}")
+        print(f"  Category: {best_row[category_column]}")
+        print(f"  Mean Score: {best_row[mean_col]:.4f}")
+        print(f"  Standard Deviation: {best_row[f'{metric_name}_std']:.4f}")
+        print(f"  N Samples: {best_row['n_samples']}")
+    
+    # Performance range
+    if mean_col in display_df.columns:
+        print(f"\nPerformance Range:")
+        print(f"  Min Mean: {display_df[mean_col].min():.4f}")
+        print(f"  Max Mean: {display_df[mean_col].max():.4f}")
+        print(f"  Overall Mean: {display_df[mean_col].mean():.4f}")
+        print(f"  Overall Std: {display_df[mean_col].std():.4f}")
+
+
+def compare_categories_performance(
+    summary_df: pd.DataFrame,
+    metric_name: str = "ast_score",
+    category_column: str = "category"
+) -> pd.DataFrame:
+    """Compare performance across different categories for a specific metric.
+    
+    Args:
+        summary_df (pd.DataFrame): Summary DataFrame from aggregate_metrics_summary
+        metric_name (str): Name of the metric to compare
+        category_column (str): Name of the category column
+        
+    Returns:
+        pd.DataFrame: DataFrame with category comparisons
+    """
+    mean_col = f'{metric_name}_mean'
+    std_col = f'{metric_name}_std'
+    
+    if mean_col not in summary_df.columns:
+        raise ValueError(f"Metric column '{mean_col}' not found in summary DataFrame")
+    
+    # Group by category and calculate statistics
+    category_stats = summary_df.groupby(category_column).agg({
+        mean_col: ['mean', 'std', 'min', 'max'],
+        'n_samples': 'sum'
+    }).round(4)
+    
+    # Flatten column names
+    category_stats.columns = [f'{metric_name}_{col}' for col in category_stats.columns]
+    
+    # Sort by mean performance
+    category_stats = category_stats.sort_values(f'{metric_name}_mean', ascending=False)
+    
+    return category_stats

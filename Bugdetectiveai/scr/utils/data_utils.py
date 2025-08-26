@@ -63,3 +63,20 @@ def transform_to_tidy(df: pd.DataFrame) -> pd.DataFrame:
     tidy_df = df_melted[['model_name', 'sample_uuid','prompt','traceback_type', 'metric_name', 'metric_value']]
 
     return tidy_df
+def create_uuid_and_category(df: pd.DataFrame ,prompt_str: str) -> pd.DataFrame:
+    """
+    Reads a file and returns a DataFrame.
+    """
+    # Guarantee required columns exist
+    required_cols = ["before_merge_without_docstrings", "after_merge_without_docstrings"]
+    for col in required_cols:
+        if col not in df.columns:
+            raise ValueError(f"Missing required column: {col}")
+    df['sample_uuid'] = df.apply(
+        lambda row: hashlib.md5(
+            (row['before_merge_without_docstrings'] + row['after_merge_without_docstrings']).encode('utf-8')
+        ).hexdigest(),
+        axis=1
+    )
+    df['prompt'] = prompt_str
+    return df
