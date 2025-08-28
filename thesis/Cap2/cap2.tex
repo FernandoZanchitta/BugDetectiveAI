@@ -148,6 +148,17 @@ We designed three distinct instructions, which we will refer to as P1 (Baseline)
 to evaluate the impact of a more detailed directive. The specific text for each instruction 
 is detailed in Table \ref{tab:prompt-instructions}.
 
+\subsubsection{Justification of Prompt Variations}
+The selection of these three specific prompt variations was driven by theoretical considerations in prompt engineering and their relevance to automated program repair tasks. Each variation was designed to test a distinct hypothesis about how LLMs process and respond to different types of instructions.
+
+\textbf{P1 (Baseline):} This prompt serves as the experimental control, providing minimal instruction to establish a baseline performance level. The simplicity of this prompt allows us to measure the inherent capability of each model without additional constraints, serving as a reference point for evaluating the effectiveness of more specific instructions. This approach follows the principle of establishing a null hypothesis in experimental design, where we can assess whether additional prompt complexity actually improves performance.
+
+\textbf{P2 (Style-aware):} The style-aware prompt introduces explicit constraints about preserving code structure and style, addressing a critical concern in automated program repair. Previous research has shown that LLMs can generate syntactically correct but stylistically inconsistent code \cite{wang2025functionalcorrectnessinvestigatingcoding}, which may reduce code maintainability and increase cognitive load for developers. By explicitly instructing the model to respect original code structure and style, we test whether such constraints lead to more maintainable and contextually appropriate patches. This variation is particularly relevant for production environments where code consistency is paramount.
+
+\textbf{P3 (System Prompt):} This variation tests the hypothesis that system-level instructions, which have higher precedence in the API message hierarchy, can provide more consistent and reliable behavior than instruction-level prompts. System prompts are designed to establish global behavioral patterns and are processed differently by the model's architecture. By moving the instruction to the system level, we investigate whether this architectural difference results in more deterministic and consistent code generation, which is crucial for automated repair systems that require reliability and reproducibility.
+
+The systematic variation between these three conditions allows us to isolate the effects of instruction specificity (P1 vs. P2) and instruction placement (P2 vs. P3), providing insights into both the content and delivery mechanisms that influence LLM performance in code repair tasks.
+
 \subsubsection{Prompt Roles in API requests}
 \begin{itemize}
     \item \textbf{System prompt:} It is an initialization message that sets global behavior for the model across a conversation or a request. It encodes policies, personas, output formatting, and safety constraints. In most APIs, it has a higher precedence than user instructions. The typical contents usually are guardrails, style registers, and output contracts (e.g., ``always return strict python code'').
