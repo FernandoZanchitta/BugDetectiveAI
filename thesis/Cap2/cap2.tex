@@ -6,8 +6,9 @@ During Automated Program Repair (APR) activities, traditional methods (based on 
 In this context, Large Language Models (LLMs) are capable of capturing code patterns and semantic context with high precision.
 On the other hand, LLMs exhibit significant sensitivity to how their instructions (prompts) are phrased. Different instructions can alter the fidelity to the original style, the clarity of the patch, and the size of the modification, especially if little context is provided during the correction process (insert ref).
 
-\subsection{Dataset}
+\section{Dataset and datapreparation}
 
+\subsection{Pytracebugs}
 The experiment uses the Pytracebugs dataset \cite{Pytracebugs}, which contains Python source codes from GitHub repositories at the granularity of function snippets and their corresponding Traceback errors; see the example below.
 
 
@@ -96,8 +97,8 @@ Qwen 2.5 Coder 32B Instruct & \$0.05 & \$0.20 \\ \hline
 
 % TODO trazer artigos que divulgam esses modelos.
 
-
-\subsection{Prompts updated}
+\section{Experimental Design}
+\subsection{Prompt variations}
 
 To test the model's sensitivity to the prompt's instructions, all prompts were formatted 
 using a consistent template, shown in Listing \ref{lst:prompt-template}. This structure ensures 
@@ -147,18 +148,36 @@ We designed three distinct instructions, which we will refer to as P1 (Baseline)
 to evaluate the impact of a more detailed directive. The specific text for each instruction 
 is detailed in Table \ref{tab:prompt-instructions}.
 
+\subsubsection{Prompt Roles in API requests}
+\begin{itemize}
+    \item \textbf{System prompt:} It is an initialization message that sets global behavior for the model across a conversation or a request. It encodes policies, personas, output formatting, and safety constraints. In most APIs, it has a higher precedence than user instructions. The typical contents usually are guardrails, style registers, and output contracts (e.g., ``always return strict python code'').
+    \item \textbf{Instruction prompt:} describes a specific task to perform. it is scoped to the current step/turn and it is subordinate to the system message when they conflict. Typical contents usually are task descriptions, inputs, and desired outputs for the tasks.
+\end{itemize}
+
+At inference, the API concatenates messages (System -> Developer -> user->assistant history) into a single token sequence. "Priority" is learned behavior, not a hard rule.
+
 \subsection{Experiment tracking}
 For each of the 4 models, 300 responses were executed for each of the prompts, totaling 4 x 300 x 3 = 3600 responses. For each response, the following metrics were evaluated: AST, AST-Normalized, CodeBLEU, N-gram match, Weighted N-gram match, Dataflow Match.
 Each metric was compared against both the original (buggy) code and the ground truth correction.
 
+\section{Evaluation method}
 
-\subsection{Implementation Details}
+%todo: reasoning behind eval metrics 
+
+%todo calculation behind all of the metrics
+
+
+\section{Implementation Details}
+\subsection{control variables}
 \label{sec:implementation-details}
 
 All API calls to the proprietary models (GPT-4o and Claude 3.5 Sonnet) and the open-source models (Qwen 2.5 and Codestral) were managed through the \textbf{OpenRouter} API aggregation service. This approach was chosen to ensure a consistent and reproducible experimental setup across all models from a single interface.
 
 The specific model identifiers used on the platform are listed below. To ensure that the results were as deterministic as possible and to facilitate a fair comparison, the generation parameters were kept constant for all API calls: a \textbf{temperature of 0} and a \textbf{top\_p of 1.0} were used. All experiments were conducted in \textbf{July 2025}.
+\subsection{retry logic and monitoring}
 
+%todo: explicar melhor como gerenciamos os requests da api.
+todo
 \begin{itemize}
     \item \texttt{openai/gpt-4o}
     \item \texttt{anthropic/claude-3.5-sonnet}
@@ -166,7 +185,7 @@ The specific model identifiers used on the platform are listed below. To ensure 
     \item \texttt{mistralai/codestral-2501}
 \end{itemize}
 
-\subsubsection{Experimental Results Summary}
+\section{Experimental Results Summary}
 Table \ref{tab:comprehensive-results} presents the comprehensive results of our experiment, showing the performance of all four models across the three prompt conditions for each evaluation metric. The results are formatted as mean ± standard deviation to provide both central tendency and variability measures.
 
 \begin{table}[h!]
