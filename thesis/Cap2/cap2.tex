@@ -75,6 +75,22 @@ Most frequent traceback errors can be found in Figure \ref{fig:dataset-traceback
 Some published works that use this dataset aim to study problems such as Vulnerability Detection \cite{zhao2024coding} and fault localization \cite{kulkarni2024graph}.
 
 \subsection{LLM Models}
+The model selection for this experiment was guided by three criteria: (1) representation of different architectural approaches, (2) availability through OpenRouter API, and (3) cost-effectiveness for large-scale experimentation. Four models were selected to provide a balanced comparison across these dimensions.
+
+Two open-source models specialized in code generation were included: Qwen 2.5 Coder 32B (instruct) \cite{hui2024qwen25codertechnicalreport} and Codestral 2501 \cite{Codestral_202501}. These models represent the current state-of-the-art in open-source code generation, with Qwen 2.5 Coder 32B achieving competitive performance on coding benchmarks while maintaining significantly lower computational requirements compared to larger models.
+
+Two closed-source models were selected for comparison: Claude 3.5 Sonnet and GPT-4o. These models represent the current frontier of general-purpose language models and provide a baseline for evaluating whether specialized code models offer advantages over general-purpose architectures in automated program repair tasks.
+
+The selection of exactly four models balances statistical power requirements with computational feasibility. While larger model sets could provide more comprehensive comparisons, the chosen sample size allows for robust statistical analysis while maintaining manageable experimental costs.
+
+% TODO: adicionar referencias que confirmem que os modelos estão dentre os modelos de estado da arte no período. Benchmarks
+
+%TODO: encontrar referências que comprovem que modelos especialistas tem vantagens específicas.
+
+%TODO: Pesquisar referencias de statistical power LLM experiments. para justificar por que 4 modelos são suficientes.
+
+%TODO: Argumentar por que outros modelos não foram escolhidos.
+
 For the first experiment, four models were chosen. Two of these are open-source models specialized in code generation, considered state-of-the-art in this category: Qwen 2.5 coder 32b (instruct) \cite{hui2024qwen25codertechnicalreport} and Codestral 2501 \cite{Codestral_202501}. Additionally, two state-of-the-art, commonly used closed-source models of a relatively similar size were selected: Claude $3.5$ Sonnet and GPT $4o$ Model.
 
 Although these models are all similarly competitive in structured benchmarks, they differ considerably in terms of usage cost. For reference, the token cost for each selected model is shown in Table \ref{tab:model-tokens}.
@@ -168,15 +184,73 @@ The systematic variation between these three conditions allows us to isolate the
 At inference, the API concatenates messages (System -> Developer -> user->assistant history) into a single token sequence. "Priority" is learned behavior, not a hard rule.
 
 \subsection{Experiment tracking}
-For each of the 4 models, 300 responses were executed for each of the prompts, totaling 4 x 300 x 3 = 3600 responses. For each response, the following metrics were evaluated: AST, AST-Normalized, CodeBLEU, N-gram match, Weighted N-gram match, Dataflow Match.
-Each metric was compared against both the original (buggy) code and the ground truth correction.
+The experimental design employed a systematic sampling approach to ensure statistical validity while maintaining computational feasibility. A random sample of 300 buggy code instances was selected from the Pytracebugs dataset for each model-prompt combination, resulting in a total of 4 × 300 × 3 = 3600 experimental trials.
+
+To estimate the statistical power for our sample size, we approximated the paired comparison using Cohen's $d$ and a normal distribution. For $n=300$ paired instances per condition, a family-wise significance level $\alpha_\text{family}=0.01$ with $K=4$ comparisons yields an individual threshold
+\[
+\alpha_\text{indiv} = \frac{\alpha_\text{family}}{K} = 0.0025,
+\]
+corresponding to
+\[
+z_{1-\alpha_\text{indiv}/2} \approx 3.09.
+\]
+Assuming a small-to-medium effect size of $d \approx 0.3$, the non-central parameter is
+\[
+\text{ncp} = d \cdot \sqrt{n} \approx 5.196.
+\]
+The resulting approximate power is
+\[
+\text{Power} \approx 1 - \Phi(z_{1-\alpha_\text{indiv}/2} - \text{ncp}) \approx 0.982,
+\]
+indicating that the chosen sample size is sufficient to detect meaningful effects while keeping computational cost reasonable.
+
+
+% TODO: descrever escolha randomica de experimento e tamanho de amostra que resulte em Significancia estatística necessária para tirarmos conclusões a respeito dos resultados.
+
+To ensure statistical rigor in our evaluation, we conducted a power analysis to verify that our sample size of 300 paired instances per condition was adequate. We used a family-wise significance threshold of $\alpha = 0.01$ for confirmatory comparisons, applying corrections for multiple testing across models. With this setup, 300 samples provide high power (approximately 0.98) to detect effects of small-to-medium size (Cohen's $d \approx 0.3$), which matches the expected effect sizes in this task. Detecting very small effects ($d \approx 0.2$) would require larger samples, but our chosen size balances computational cost and statistical validity, ensuring that meaningful differences can be detected with strong confidence.
+
+For each response, the following evaluation metrics were computed: AST similarity, AST-normalized score, CodeBLEU, N-gram overlap, weighted N-gram match, syntax correctness, and dataflow preservation. Each metric was evaluated against both the original buggy code and the ground truth correction to provide comprehensive performance assessment.
 
 \section{Evaluation method}
 
-%todo: reasoning behind eval metrics 
+\section{Evaluation Method}
+\label{sec:evaluation-method}
 
-%todo calculation behind all of the metrics
+The evaluation framework employs multiple complementary metrics to assess the quality of generated code repairs across different dimensions: structural similarity, semantic preservation, and syntactic correctness. This multi-faceted approach ensures comprehensive assessment of LLM performance in automated program repair tasks.
 
+\subsection{Structural Similarity Metrics}
+
+\subsubsection{AST Score}
+The Abstract Syntax Tree (AST) score measures the structural similarity between the generated repair and the ground truth correction by comparing their parse tree representations. This metric is particularly relevant for automated program repair as it captures the fundamental program structure independently of formatting, variable names, or comment variations.
+
+The AST score is computed by:
+\begin{enumerate}
+    \item Parsing both the generated code and ground truth into their respective AST representations
+    \item Computing the tree edit distance using the Zhang-Shasha algorithm \cite{zhang1989simple}
+    \item Normalizing the distance by the maximum tree size to obtain a similarity score in the range [0,1]
+\end{enumerate}
+
+A score of 1.0 indicates perfect structural similarity, while 0.0 represents completely different program structures. This metric is sensitive to control flow changes, function structure modifications, and overall program architecture, making it essential for evaluating whether the LLM has preserved the intended program logic.
+
+\subsubsection{AST Normalized Score}
+The AST normalized score addresses a fundamental limitation of the raw AST score by normalizing identifiers and constants to focus purely on structural similarity. This metric is particularly valuable in automated program repair as it distinguishes between structural changes and mere naming variations, which are often irrelevant to the actual repair quality.
+
+The normalization process involves:
+\begin{enumerate}
+    \item Parsing both the generated code and ground truth into AST representations
+    \item Applying a normalization transformation that:
+        \begin{itemize}
+            \item Replaces variable names with normalized identifiers (\texttt{\_var\_1}, \texttt{\_var\_2}, etc.)
+            \item Replaces function names with normalized identifiers (\texttt{\_func\_1}, \texttt{\_func\_2}, etc.)
+            \item Replaces class names with normalized identifiers (\texttt{\_class\_1}, \texttt{\_class\_2}, etc.)
+            \item Replaces literal constants with a placeholder (\texttt{\_const\_})
+        \end{itemize}
+    \item Computing similarity between the normalized AST representations using sequence matching
+\end{enumerate}
+
+This approach is crucial for automated program repair evaluation because it focuses on the essential structural logic rather than superficial naming differences. For example, a repair that changes variable names from \texttt{user\_input} to \texttt{input\_data} would receive a perfect normalized AST score, while maintaining the same structural integrity. This metric is particularly valuable for identifying whether LLMs are generating repairs that preserve the intended program logic and control flow, regardless of identifier choices.
+
+The AST normalized score provides a more robust assessment of repair quality by isolating structural changes from naming conventions, making it essential for evaluating whether the core program architecture and logic flow have been preserved in the generated repair.
 
 \section{Implementation Details}
 \subsection{control variables}
@@ -329,45 +403,3 @@ The statistical results in Table \ref{tab:statistical-results} reveal several ke
 
 The win/loss percentages provide additional insights into model performance: Codestral 2501's high win rates (39-55\%) against specialized models like Qwen 2.5 Coder 32B and GPT-4o suggest that its architectural advantages extend beyond simple statistical significance to consistent practical superiority. Claude 3.5 Sonnet's poor performance is evident in its low win rates (19-33\%) across all comparisons, while GPT-4o shows intermediate performance with win rates of 30-48\% depending on the comparison.
 
-% Manipuladores subatuados diferem dos totalmente atuados pois são equipados com um número de atuadores que é sempre menor que o número de \gls{graus_liberdade}. Portanto, nem todos os \gls{graus_liberdade} podem ser controlados ativamente ao mesmo tempo \cite{Sbornian2004}. Por exemplo, com um manipulador planar de 3 juntas equipado com dois atuadores, ou seja, duas juntas ativas e
-% uma passiva, pode-se controlar ao mesmo tempo duas das juntas a qualquer instante, mas não todas. Para controlar todas as juntas de um manipulador subatuado, deve-se usar um controle sequencial. Este princípio foi provado pela primeira vez por {arai} usando  argumentos dinâmicos linearizados \cite{Joea2003}, e é a base para a modelagem no espaço das juntas e no espaço Cartesiano. A Tabela \ref{minhatab} apresenta os resultados \cite{Assenmacher1993,Silberschatz1991,Caromel1998}.
-
-% \begin{table}
-% \caption{Exemplo de uma Tabela}
-% \label{minhatab}
-
-% \center
-% \begin{tabular}{cccc}
-%   % after \\: \hline or \cline{col1-col2} \cline{col3-col4} ...
-%   \hline
-% 	Parâmetro & Unidade & Valor da simulação & Valor experimental   \\
-% 	\hline
-%   Comprimento, \gls{comprimento} & $m$ &  $8,23$  & $8,54$ \\
-%   Altura, \gls{altura} & $m$     &  $29,1$ & $28,3$\\
-% 	Velocidade, \gls{velocidade} & $m/s$  &  $60,2$ & $67,3$\\
-% 	\hline
-% \end{tabular}
-% \end{table}
-
-% Devido ao fato de que no máximo $n_{a}$ coordenadas generalizadas (ângulos das juntas ou variáveis cartesianas) podem ser controladas num dado instante, o vetor de coordenadas generalizadas é dividido em duas partes, representando as coordenadas generalizadas ativas e as coordenadas generalizadas passivas \cite{Callaghan1995}.
-
-\begin{figure}[ht]
-\centering
-\includegraphics[width=0.75\textwidth]{Cap2/spiderrobot}
-\caption{Cupim cibernético.}\label{FDIII}
-\end{figure}
-
-% Considerando um robô manipulador rígido, malha aberta, e de $n$-juntas em série. Seja $q$ a representação de seu vetor de posição angular das juntas  e $\tau$ a representação de seu vetor de torque. A equação dinâmica pelo método de
-% Lagrange é dada por:
-% \begin{equation} \label{eq:lagr1}
-% \frac{d}{dt} \left( \frac{\partial L}{\partial \dot{q}} \right) -\frac{\partial L}{\partial q}=\tau^{T}.
-% \end{equation}
-% O Lagrangiano $L$ é definido como a diferença entre as energias cinética e potencial do sistema:
-% \begin{equation} \label{L}
-% L=T-P
-% \end{equation}
-
-% A energia cinética total dos ligamentos é representada:
-% \begin{equation} \label{energT}
-% T=\frac{1}{2}\dot{q}^{T}M(q)\dot{q}
-% \end{equation}
