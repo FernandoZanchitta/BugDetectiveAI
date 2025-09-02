@@ -91,7 +91,7 @@ The selection of exactly four models balances statistical power requirements wit
 
 %TODO: Argumentar por que outros modelos não foram escolhidos.
 
-For the first experiment, four models were chosen. Two of these are open-source models specialized in code generation, considered state-of-the-art in this category: Qwen 2.5 coder 32b (instruct) \cite{hui2024qwen25codertechnicalreport} and Codestral 2501 \cite{Codestral_202501}. Additionally, two state-of-the-art, commonly used closed-source models of a relatively similar size were selected: Claude $3.5$ Sonnet and GPT $4o$ Model.
+% For the first experiment, four models were chosen. Two of these are open-source models specialized in code generation, considered state-of-the-art in this category: Qwen 2.5 coder 32b (instruct) \cite{hui2024qwen25codertechnicalreport} and Codestral 2501 \cite{Codestral_202501}. Additionally, two state-of-the-art, commonly used closed-source models of a relatively similar size were selected: Claude $3.5$ Sonnet and GPT $4o$ Model.
 
 Although these models are all similarly competitive in structured benchmarks, they differ considerably in terms of usage cost. For reference, the token cost for each selected model is shown in Table \ref{tab:model-tokens}.
 \begin{table}[h!]
@@ -234,7 +234,7 @@ A score of 1.0 indicates perfect structural similarity, while 0.0 represents com
 
 \subsubsection{AST Normalized Score}
 The AST normalized score addresses a fundamental limitation of the raw AST score by normalizing identifiers and constants to focus purely on structural similarity. This metric is particularly valuable in automated program repair as it distinguishes between structural changes and mere naming variations, which are often irrelevant to the actual repair quality.
-
+% TODO: Confirm this
 The normalization process involves:
 \begin{enumerate}
     \item Parsing both the generated code and ground truth into AST representations
@@ -249,6 +249,109 @@ The normalization process involves:
 \end{enumerate}
 
 This approach is crucial for automated program repair evaluation because it focuses on the essential structural logic rather than superficial naming differences. For example, a repair that changes variable names from \texttt{user\_input} to \texttt{input\_data} would receive a perfect normalized AST score, while maintaining the same structural integrity. This metric is particularly valuable for identifying whether LLMs are generating repairs that preserve the intended program logic and control flow, regardless of identifier choices.
+
+To illustrate the difference between AST and AST normalized representations, consider the following example of a Python function:
+
+\begin{figure}[h!]
+\centering
+\begin{minipage}{0.46\textwidth}
+\centering
+\textbf{Original AST}
+\begin{lstlisting}[basicstyle=\ttfamily\tiny, frame=single, breaklines=true]
+Module(
+  body=[
+  FunctionDef(
+    name='check_status',
+    args=arguments(
+      posonlyargs=[],
+      args=[
+        arg(arg='monster'),
+        arg(arg='status_name')],
+      kwonlyargs=[],
+      kw_defaults=[],
+      defaults=[]),
+    body=[
+      Return(
+        value=Call(
+          func=Name(id='any', ctx=Load()),
+          args=[
+            GeneratorExp(
+              elt=Name(id='t', ctx=Load()),
+              generators=[
+                comprehension(
+                  target=Name(id='t', ctx=Store()),
+                  iter=Attribute(
+                    value=Name(id='monster', ctx=Load()),
+                    attr='status',
+                    ctx=Load()),
+                  ifs=[
+                    Compare(
+                      left=Attribute(
+                        value=Name(id='t', ctx=Load()),
+                        attr='name',
+                        ctx=Load()),
+                      ops=[
+                        Eq()],
+                      comparators=[
+                        Name(id='status_name', ctx=Load())])],
+                  is_async=0)])],
+          keywords=[]))],
+    decorator_list=[])],
+  type_ignores=[])
+\end{lstlisting}
+\end{minipage}
+\hfill
+\begin{minipage}{0.50\textwidth}
+\centering
+\textbf{AST Normalized}
+\begin{lstlisting}[basicstyle=\ttfamily\tiny, frame=single, breaklines=true]
+Module(
+  body=[
+  FunctionDef(
+    name='_func_1',
+    args=arguments(
+      posonlyargs=[],
+      args=[
+        arg(arg='monster'),
+        arg(arg='status_name')],
+      kwonlyargs=[],
+      kw_defaults=[],
+      defaults=[]),
+    body=[
+      Return(
+        value=Call(
+          func=Name(id='_var_1', ctx=Load()),
+          args=[
+            GeneratorExp(
+              elt=Name(id='_var_2', ctx=Load()),
+              generators=[
+                comprehension(
+                  target=Name(id='_var_2', ctx=Store()),
+                  iter=Attribute(
+                    value=Name(id='_var_4', ctx=Load()),
+                    attr='status',
+                    ctx=Load()),
+                  ifs=[
+                    Compare(
+                      left=Attribute(
+                        value=Name(id='_var_2', ctx=Load()),
+                        attr='name',
+                        ctx=Load()),
+                      ops=[
+                        Eq()],
+                      comparators=[
+                        Name(id='_var_6', ctx=Load())])],
+                  is_async=0)])],
+          keywords=[]))],
+    decorator_list=[])],
+  type_ignores=[])
+\end{lstlisting}
+\end{minipage}
+\caption{Side-by-side comparison of AST and AST normalized representations for the same Python function. The normalized version replaces specific identifiers with generic placeholders (\texttt{\_func\_1}, \texttt{\_var\_1}, etc.) while preserving the structural logic.}
+\label{fig:ast-comparison}
+\end{figure}
+
+As shown in Figure \ref{fig:ast-comparison}, the AST normalized representation replaces specific identifiers like \texttt{check\_status}, \texttt{any}, \texttt{monster}, \texttt{status\_name}, and \texttt{t} with generic placeholders (\texttt{\_func\_1}, \texttt{\_var\_1}, \texttt{\_var\_4}, \texttt{\_var\_6}, and \texttt{\_var\_2} respectively). This normalization allows the metric to focus purely on structural similarity, ignoring naming variations that are irrelevant to the actual repair quality.
 
 The AST normalized score provides a more robust assessment of repair quality by isolating structural changes from naming conventions, making it essential for evaluating whether the core program architecture and logic flow have been preserved in the generated repair.
 
@@ -282,29 +385,29 @@ Table \ref{tab:comprehensive-results} presents the comprehensive results of our 
 \hline
 \textbf{Model} & \textbf{Prompt} & \textbf{AST Score} & \textbf{Text Score} & \textbf{AST Norm.} & \textbf{CodeBLEU} & \textbf{N-gram} & \textbf{W. N-gram} & \textbf{Syntax} & \textbf{Dataflow} \\
 \hline
-\multirow{3}{*}{Claude 3.5 Sonnet} & Baseline & $0.22 \pm 0.36$ & $0.68 \pm 0.23$ & $0.29 \pm 0.40$ & $0.73 \pm 0.17$ & $0.64 \pm 0.27$ & $0.71 \pm 0.24$ & $0.76 \pm 0.19$ & $0.71 \pm 0.26$ \\
+\multirow{3}{*}{Claude 3.5 Sonnet} & Baseline & $0.60 \pm 0.34$ & $0.72 \pm 0.23$ & $0.61 \pm 0.34$ & $0.73 \pm 0.17$ & $0.64 \pm 0.27$ & $0.71 \pm 0.24$ & $0.76 \pm 0.19$ & $0.71 \pm 0.26$ \\
 \cline{2-10}
-& Style-aware & $0.23 \pm 0.37$ & $0.69 \pm 0.23$ & $0.31 \pm 0.41$ & $0.73 \pm 0.17$ & $0.64 \pm 0.26$ & $0.72 \pm 0.24$ & $0.77 \pm 0.19$ & $0.71 \pm 0.26$ \\
+& Style-aware & $0.61 \pm 0.34$ & $0.72 \pm 0.23$ & $0.62 \pm 0.33$ & $0.73 \pm 0.17$ & $0.64 \pm 0.26$ & $0.72 \pm 0.24$ & $0.77 \pm 0.19$ & $0.71 \pm 0.26$ \\
 \cline{2-10}
-& System & $0.23 \pm 0.36$ & $0.71 \pm 0.22$ & $0.38 \pm 0.44$ & $0.73 \pm 0.17$ & $0.65 \pm 0.26$ & $0.71 \pm 0.24$ & $0.76 \pm 0.19$ & $0.72 \pm 0.26$ \\
+& System & $0.55 \pm 0.37$ & $0.72 \pm 0.22$ & $0.57 \pm 0.37$ & $0.73 \pm 0.17$ & $0.65 \pm 0.26$ & $0.71 \pm 0.24$ & $0.76 \pm 0.19$ & $0.72 \pm 0.26$ \\
 \hline
-\multirow{3}{*}{Codestral 2501} & Baseline & $0.28 \pm 0.41$ & $0.75 \pm 0.21$ & $0.28 \pm 0.41$ & $0.78 \pm 0.19$ & $0.73 \pm 0.26$ & $0.77 \pm 0.24$ & $0.81 \pm 0.19$ & $0.74 \pm 0.26$ \\
+\multirow{3}{*}{Codestral 2501} & Baseline & $0.76 \pm 0.28$ & $0.79 \pm 0.22$ & $0.77 \pm 0.27$ & $0.78 \pm 0.19$ & $0.73 \pm 0.26$ & $0.77 \pm 0.24$ & $0.81 \pm 0.19$ & $0.74 \pm 0.27$ \\
 \cline{2-10}
-& Style-aware & $0.28 \pm 0.41$ & $0.75 \pm 0.22$ & $0.28 \pm 0.41$ & $0.78 \pm 0.18$ & $0.73 \pm 0.26$ & $0.77 \pm 0.24$ & $0.81 \pm 0.19$ & $0.75 \pm 0.26$ \\
+& Style-aware & $0.76 \pm 0.28$ & $0.80 \pm 0.22$ & $0.77 \pm 0.27$ & $0.78 \pm 0.18$ & $0.73 \pm 0.26$ & $0.77 \pm 0.24$ & $0.81 \pm 0.19$ & $0.75 \pm 0.26$ \\
 \cline{2-10}
-& System & $0.28 \pm 0.41$ & $0.75 \pm 0.21$ & $0.28 \pm 0.41$ & $0.77 \pm 0.18$ & $0.73 \pm 0.26$ & $0.77 \pm 0.24$ & $0.81 \pm 0.19$ & $0.74 \pm 0.27$ \\
+& System & $0.76 \pm 0.29$ & $0.80 \pm 0.22$ & $0.77 \pm 0.27$ & $0.77 \pm 0.18$ & $0.73 \pm 0.26$ & $0.77 \pm 0.24$ & $0.81 \pm 0.19$ & $0.74 \pm 0.27$ \\
 \hline
-\multirow{3}{*}{GPT-4o} & Baseline & $0.26 \pm 0.39$ & $0.70 \pm 0.25$ & $0.28 \pm 0.40$ & $0.72 \pm 0.22$ & $0.65 \pm 0.29$ & $0.72 \pm 0.28$ & $0.77 \pm 0.22$ & $0.69 \pm 0.29$ \\
+\multirow{3}{*}{GPT-4o} & Baseline & $0.70 \pm 0.30$ & $0.75 \pm 0.26$ & $0.73 \pm 0.29$ & $0.72 \pm 0.22$ & $0.65 \pm 0.29$ & $0.72 \pm 0.28$ & $0.77 \pm 0.22$ & $0.69 \pm 0.29$ \\
 \cline{2-10}
-& Style-aware & $0.27 \pm 0.40$ & $0.72 \pm 0.24$ & $0.27 \pm 0.40$ & $0.75 \pm 0.20$ & $0.68 \pm 0.28$ & $0.74 \pm 0.26$ & $0.79 \pm 0.21$ & $0.71 \pm 0.28$ \\
+& Style-aware & $0.73 \pm 0.29$ & $0.77 \pm 0.24$ & $0.74 \pm 0.28$ & $0.75 \pm 0.20$ & $0.68 \pm 0.28$ & $0.74 \pm 0.26$ & $0.79 \pm 0.21$ & $0.71 \pm 0.28$ \\
 \cline{2-10}
-& System & $0.27 \pm 0.40$ & $0.74 \pm 0.22$ & $0.28 \pm 0.40$ & $0.75 \pm 0.19$ & $0.69 \pm 0.27$ & $0.75 \pm 0.25$ & $0.80 \pm 0.19$ & $0.71 \pm 0.27$ \\
+& System & $0.74 \pm 0.29$ & $0.78 \pm 0.23$ & $0.76 \pm 0.26$ & $0.75 \pm 0.19$ & $0.69 \pm 0.27$ & $0.75 \pm 0.25$ & $0.80 \pm 0.19$ & $0.71 \pm 0.27$ \\
 \hline
-\multirow{3}{*}{Qwen 2.5 Coder 32B} & Baseline & $0.28 \pm 0.41$ & $0.75 \pm 0.22$ & $0.28 \pm 0.40$ & $0.76 \pm 0.19$ & $0.70 \pm 0.28$ & $0.75 \pm 0.25$ & $0.80 \pm 0.20$ & $0.73 \pm 0.27$ \\
+\multirow{3}{*}{Qwen 2.5 Coder 32B} & Baseline & $0.74 \pm 0.29$ & $0.79 \pm 0.22$ & $0.75 \pm 0.27$ & $0.76 \pm 0.19$ & $0.70 \pm 0.28$ & $0.75 \pm 0.25$ & $0.80 \pm 0.20$ & $0.73 \pm 0.27$ \\
 \cline{2-10}
-& Style-aware & $0.27 \pm 0.40$ & $0.80 \pm 0.22$ & $0.31 \pm 0.42$ & $0.77 \pm 0.18$ & $0.71 \pm 0.26$ & $0.75 \pm 0.24$ & $0.80 \pm 0.19$ & $0.74 \pm 0.26$ \\
+& Style-aware & $0.70 \pm 0.32$ & $0.77 \pm 0.21$ & $0.72 \pm 0.31$ & $0.77 \pm 0.18$ & $0.71 \pm 0.26$ & $0.75 \pm 0.24$ & $0.80 \pm 0.19$ & $0.74 \pm 0.26$ \\
 \cline{2-10}
-& System & $0.26 \pm 0.39$ & $0.74 \pm 0.22$ & $0.26 \pm 0.39$ & $0.76 \pm 0.19$ & $0.70 \pm 0.27$ & $0.75 \pm 0.24$ & $0.80 \pm 0.19$ & $0.74 \pm 0.27$ \\
+& System & $0.73 \pm 0.29$ & $0.78 \pm 0.23$ & $0.75 \pm 0.28$ & $0.76 \pm 0.19$ & $0.70 \pm 0.27$ & $0.75 \pm 0.24$ & $0.80 \pm 0.19$ & $0.74 \pm 0.27$ \\
 \hline
 \end{tabular}%
 }
@@ -314,82 +417,104 @@ The results in Table \ref{tab:comprehensive-results} reveal several key insights
 
 \begin{itemize}
     \item \textbf{Model Performance Ranking}: Codestral 2501 consistently achieves the highest scores across most metrics, followed by Qwen 2.5 Coder 32B, GPT-4o, and Claude 3.5 Sonnet
-    \item \textbf{Prompt Sensitivity}: The style-aware prompt (P2) shows modest improvements in some metrics, particularly for Qwen 2.5 Coder 32B in text score ($0.80 \pm 0.22$ vs baseline $0.75 \pm 0.22$)
-    \item \textbf{Metric Consistency}: AST scores show the highest variability (std $\sim$ 0.36-0.41), while syntax match scores demonstrate the most consistency (std $\sim$ 0.19-0.22)
+    \item \textbf{Prompt Sensitivity}: The style-aware prompt (P2) shows modest improvements in some metrics, particularly for Qwen 2.5 Coder 32B in text score ($0.80 \pm 0.22$ vs baseline $0.79 \pm 0.22$)
+    \item \textbf{Metric Consistency}: AST scores show the highest variability (std $\sim$ 0.28-0.37), while syntax match scores demonstrate the most consistency (std $\sim$ 0.19-0.22)
     \item \textbf{Performance Stability}: Codestral 2501 shows the most consistent performance across prompt variations, suggesting robustness to prompt engineering changes
 \end{itemize}
 
 These results provide a comprehensive foundation for understanding the effectiveness of different prompt engineering strategies and their impact on LLM-based automated program repair performance.
 
 \subsubsection{Statistical Significance Analysis}
-To rigorously evaluate the observed performance differences, we conducted comprehensive statistical testing using the Wilcoxon signed-rank test with multiple comparison corrections. Our analysis focused on identifying statistically significant differences (p < 0.001) across prompt conditions while controlling for multiple testing effects through Bonferroni correction. The statistical analysis reveals several critical insights that complement the descriptive statistics presented above.
+To rigorously evaluate the observed performance differences, we conducted comprehensive statistical testing using the Wilcoxon signed-rank test with multiple comparison corrections. Our analysis focused on identifying statistically significant differences (p < 0.01) across prompt conditions while controlling for multiple testing effects through Bonferroni correction. The statistical analysis reveals several critical insights that complement the descriptive statistics presented above.
 
-For the AST normalized score, we observed significant differences between baseline and system prompt conditions for Claude 3.5 Sonnet (p = 7.41$\times$10$^{-8}$, effect size = 0.225) and between system and style-aware prompts (p = 3.60$\times$10$^{-4}$, effect size = 0.682). Similarly, Qwen 2.5 Coder 32B showed significant improvements in AST normalized scores when comparing system to style-aware prompts (p = 8.65$\times$10$^{-5}$, effect size = 0.271). In terms of CodeBLEU performance, GPT-4o demonstrated statistically significant improvements between baseline and style-aware prompts (p = 1.65$\times$10$^{-5}$, effect size = 0.333), suggesting that explicit style preservation instructions can enhance semantic similarity in generated patches.
+The statistical analysis reveals several critical insights that complement the descriptive statistics presented above. For AST normalized scores, we observed significant differences between Claude 3.5 Sonnet and Codestral 2501 across all prompt conditions (p < 4.19$\times$10$^{-23}$, effect sizes 0.185-0.195), with Codestral 2501 consistently outperforming Claude 3.5 Sonnet. Similarly, Codestral 2501 significantly outperforms GPT-4o in AST normalized scores (p < 3.65$\times$10$^{-9}$, effect sizes 0.658-0.710) and CodeBLEU scores (p < 9.61$\times$10$^{-14}$, effect sizes 0.679-0.738) across all prompt conditions.
 
-These statistically significant findings, combined with the descriptive statistics, provide strong evidence that prompt engineering choices have measurable and meaningful impacts on LLM-based program repair performance, particularly in the domains of structural similarity (AST scores) and semantic preservation (CodeBLEU metrics).
+The analysis also reveals interesting model-specific patterns: Claude 3.5 Sonnet shows the weakest performance, with significantly lower scores compared to all other models in both AST normalized and CodeBLEU metrics. GPT-4o demonstrates intermediate performance, showing some competitive results against Qwen 2.5 Coder 32B in CodeBLEU (p = 1.74$\times$10$^{-4}$, effect size = 0.404) but remaining consistently below Codestral 2501. Qwen 2.5 Coder 32B shows competitive performance, particularly in CodeBLEU metrics where it achieves win rates of 26-27% against Claude 3.5 Sonnet.
+
+These statistically significant findings, combined with the descriptive statistics, provide strong evidence that model architecture choices have substantial impacts on LLM-based program repair performance, with specialized code generation models like Codestral 2501 providing significant advantages over general-purpose language models.
 
 \subsubsection{Model Performance Comparisons}
-Beyond prompt engineering effects, our statistical analysis reveals significant performance differences between models within each prompt condition. These within-dataset comparisons (p < 0.001) provide insights into the relative capabilities of different LLM architectures for automated program repair tasks.
+Beyond prompt engineering effects, our statistical analysis reveals significant performance differences between models within each prompt condition. These within-dataset comparisons (p < 0.01) provide insights into the relative capabilities of different LLM architectures for automated program repair tasks.
 
-Across all prompt conditions, Codestral 2501 consistently demonstrates superior performance, significantly outperforming other models in CodeBLEU scores. In the baseline condition, Codestral 2501 achieves significantly higher CodeBLEU scores compared to Claude 3.5 Sonnet (p = 3.62$\times$10$^{-20}$, effect size = 0.222), Qwen 2.5 Coder 32B (p = 1.16$\times$10$^{-6}$, effect size = 0.682), and GPT-4o (p = 5.55$\times$10$^{-14}$, effect size = 0.741). This pattern persists across system and style-aware prompts, with Codestral 2501 maintaining its performance advantage with effect sizes ranging from 0.679 to 0.741.
+Across all prompt conditions, Codestral 2501 consistently demonstrates superior performance, significantly outperforming other models in both AST normalized and CodeBLEU scores. In the baseline condition, Codestral 2501 achieves significantly higher AST normalized scores compared to Claude 3.5 Sonnet (p = 4.19$\times$10$^{-23}$, effect size = 0.185), GPT-4o (p = 3.65$\times$10$^{-9}$, effect size = 0.710), and Qwen 2.5 Coder 32B (p = 1.56$\times$10$^{-5}$, effect size = 0.673). Similarly, Codestral 2501 significantly outperforms all other models in CodeBLEU scores, with effect sizes ranging from 0.678 to 0.738 across all comparisons.
 
-The analysis also reveals interesting model-specific patterns: Claude 3.5 Sonnet consistently ranks lowest in CodeBLEU performance across all prompt conditions, while Qwen 2.5 Coder 32B shows competitive performance, particularly in the style-aware condition where it achieves the highest text score (0.80 ± 0.22). GPT-4o demonstrates intermediate performance, showing significant improvements with style-aware prompts but remaining consistently below Codestral 2501 across all metrics.
+The analysis reveals clear model performance hierarchies: Claude 3.5 Sonnet consistently ranks lowest across all metrics and prompt conditions, with win rates of only 15--27\% against other models. GPT-4o demonstrates intermediate performance, showing some competitive results against Qwen 2.5 Coder 32B in CodeBLEU (win rate of 30\%) but remaining consistently below Codestral 2501. Qwen 2.5 Coder 32B shows competitive performance, particularly in CodeBLEU metrics where it achieves win rates of 26--27\% against Claude 3.5 Sonnet and maintains competitive performance against GPT-4o.
 
-These findings suggest that while prompt engineering can enhance performance within a given model, the choice of underlying LLM architecture remains a critical factor in determining overall repair quality, with specialized code generation models like Codestral 2501 providing substantial advantages over general-purpose language models.
+These findings suggest that model architecture is the primary determinant of repair quality, with specialized code generation models like Codestral 2501 providing substantial advantages over general-purpose language models, while prompt engineering variations show more modest effects within each model's performance envelope.
 
 \subsubsection{Statistical Results Summary}
-Table \ref{tab:statistical-results} presents the comprehensive statistical analysis results, showing all significant model comparisons (p < 0.001) across different prompt conditions and metrics. The table includes p-values, effect sizes, and win/loss percentages to provide a complete picture of model performance differences.
+Table \ref{tab:statistical-results} presents the comprehensive statistical analysis results, showing all significant model comparisons (p < 0.01) across different prompt conditions and metrics. The table includes p-values, effect sizes, and win/loss percentages to provide a complete picture of model performance differences.
 
 \begin{table}[h!]
 \centering
-\caption{Statistical significance results for model comparisons across prompt conditions (p < 0.001).}
+\caption{Statistical significance results for model comparisons across prompt conditions (p < 0.01).}
 \label{tab:statistical-results}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{|l|l|l|l|c|c|c|c|c|}
 \hline
 \textbf{Model A} & \textbf{Model B} & \textbf{Metric} & \textbf{Prompt} & \textbf{P-value} & \textbf{Effect Size} & \textbf{Wins \%} & \textbf{Ties \%} & \textbf{Losses \%} \\
 \hline
-\multirow{6}{*}{Claude 3.5 Sonnet} & \multirow{2}{*}{Codestral 2501} & \multirow{2}{*}{CodeBLEU} & Baseline & 3.62$\times$10$^{-20}$ & 0.222 & 20.0 & 10.0 & 70.0 \\
+\multirow{6}{*}{Claude 3.5 Sonnet} & \multirow{2}{*}{Codestral 2501} & \multirow{2}{*}{AST Norm.} & Baseline & 4.19$\times$10$^{-23}$ & 0.185 & 16.0 & 13.3 & 70.7 \\
 \cline{4-9}
-& & & System & 4.47$\times$10$^{-19}$ & 0.224 & 20.0 & 10.7 & 69.3 \\
+& & & System & 1.73$\times$10$^{-23}$ & 0.195 & 16.7 & 14.3 & 69.0 \\
 \cline{4-9}
-& & & Style-aware & 6.70$\times$10$^{-20}$ & 0.223 & 19.3 & 13.3 & 67.3 \\
+& & & Style-aware & 6.92$\times$10$^{-22}$ & 0.185 & 15.7 & 15.3 & 69.0 \\
 \cline{2-9}
-& \multirow{2}{*}{GPT-4o} & \multirow{2}{*}{CodeBLEU} & Baseline & 7.30$\times$10$^{-12}$ & 0.301 & 26.7 & 11.3 & 62.0 \\
+& \multirow{2}{*}{Codestral 2501} & \multirow{2}{*}{CodeBLEU} & Baseline & 7.54$\times$10$^{-20}$ & 0.226 & 20.3 & 10.0 & 69.7 \\
 \cline{4-9}
-& & & System & 8.84$\times$10$^{-7}$ & 0.361 & 33.0 & 8.7 & 58.3 \\
+& & & System & 3.10$\times$10$^{-19}$ & 0.220 & 19.7 & 10.7 & 69.7 \\
 \cline{4-9}
-& & & Style-aware & 1.64$\times$10$^{-7}$ & 0.345 & 30.3 & 12.0 & 57.7 \\
+& & & Style-aware & 7.67$\times$10$^{-20}$ & 0.223 & 19.3 & 13.3 & 67.3 \\
 \cline{2-9}
-& \multirow{2}{*}{Qwen 2.5 Coder 32B} & \multirow{2}{*}{CodeBLEU} & Baseline & 7.30$\times$10$^{-12}$ & 0.301 & 26.7 & 11.3 & 62.0 \\
+& \multirow{2}{*}{GPT-4o} & \multirow{2}{*}{AST Norm.} & Baseline & 1.09$\times$10$^{-10}$ & 0.328 & 29.7 & 9.7 & 60.7 \\
 \cline{4-9}
-& & & System & 3.07$\times$10$^{-13}$ & 0.285 & 24.7 & 13.3 & 62.0 \\
+& & & System & 8.59$\times$10$^{-18}$ & 0.274 & 24.3 & 11.3 & 64.3 \\
 \cline{4-9}
-& & & Style-aware & 2.36$\times$10$^{-10}$ & 0.318 & 27.7 & 13.0 & 59.3 \\
+& & & Style-aware & 1.27$\times$10$^{-13}$ & 0.271 & 23.3 & 14.0 & 62.7 \\
+\cline{2-9}
+& \multirow{2}{*}{GPT-4o} & \multirow{2}{*}{CodeBLEU} & Baseline & 2.33$\times$10$^{-3}$ & 0.384 & 36.0 & 6.3 & 57.7 \\
+\cline{4-9}
+& & & System & 5.44$\times$10$^{-7}$ & 0.358 & 32.7 & 8.7 & 58.7 \\
+\cline{4-9}
+& & & Style-aware & 1.44$\times$10$^{-7}$ & 0.341 & 30.0 & 12.0 & 58.0 \\
+\cline{2-9}
+& \multirow{2}{*}{Qwen 2.5 Coder 32B} & \multirow{2}{*}{AST Norm.} & Baseline & 1.32$\times$10$^{-14}$ & 0.261 & 22.3 & 14.3 & 63.3 \\
+\cline{4-9}
+& & & System & 3.41$\times$10$^{-14}$ & 0.282 & 23.7 & 16.0 & 60.3 \\
+\cline{4-9}
+& & & Style-aware & 8.23$\times$10$^{-10}$ & 0.310 & 25.7 & 17.3 & 57.0 \\
+\cline{2-9}
+& \multirow{2}{*}{Qwen 2.5 Coder 32B} & \multirow{2}{*}{CodeBLEU} & Baseline & 8.19$\times$10$^{-12}$ & 0.301 & 26.7 & 11.3 & 62.0 \\
+\cline{4-9}
+& & & System & 2.11$\times$10$^{-13}$ & 0.282 & 24.3 & 13.7 & 62.0 \\
+\cline{4-9}
+& & & Style-aware & 2.06$\times$10$^{-10}$ & 0.318 & 27.7 & 13.0 & 59.3 \\
 \hline
-\multirow{6}{*}{Codestral 2501} & \multirow{2}{*}{GPT-4o} & \multirow{2}{*}{CodeBLEU} & Baseline & 5.55$\times$10$^{-14}$ & 0.741 & 55.3 & 25.3 & 19.3 \\
+\multirow{6}{*}{Codestral 2501} & \multirow{2}{*}{GPT-4o} & \multirow{2}{*}{AST Norm.} & Baseline & 3.65$\times$10$^{-9}$ & 0.710 & 51.3 & 27.7 & 21.0 \\
 \cline{4-9}
-& & & System & 4.96$\times$10$^{-10}$ & 0.699 & 48.7 & 30.3 & 21.0 \\
+& & & System & 9.89$\times$10$^{-5}$ & 0.658 & 43.7 & 33.7 & 22.7 \\
 \cline{4-9}
-& & & Style-aware & 8.46$\times$10$^{-8}$ & 0.679 & 47.3 & 30.3 & 22.3 \\
+& & & Style-aware & 6.95$\times$10$^{-6}$ & 0.667 & 44.7 & 33.0 & 22.3 \\
 \cline{2-9}
-& \multirow{2}{*}{Qwen 2.5 Coder 32B} & \multirow{2}{*}{CodeBLEU} & Baseline & 1.16$\times$10$^{-6}$ & 0.682 & 39.3 & 42.3 & 18.3 \\
+& \multirow{2}{*}{GPT-4o} & \multirow{2}{*}{CodeBLEU} & Baseline & 9.61$\times$10$^{-14}$ & 0.738 & 55.3 & 25.0 & 19.7 \\
 \cline{4-9}
-& & & System & 1.48$\times$10$^{-6}$ & 0.683 & 41.7 & 39.0 & 19.3 \\
+& & & System & 4.89$\times$10$^{-10}$ & 0.699 & 48.7 & 30.3 & 21.0 \\
 \cline{4-9}
-& & & Style-aware & 2.89$\times$10$^{-8}$ & 0.704 & 42.0 & 40.3 & 17.7 \\
+& & & Style-aware & 8.18$\times$10$^{-8}$ & 0.679 & 47.3 & 30.3 & 22.3 \\
 \cline{2-9}
-& \multirow{2}{*}{GPT-4o} & \multirow{2}{*}{AST Norm.} & Baseline & 1.53$\times$10$^{-4}$ & 0.700 & 21.0 & 70.0 & 9.0 \\
+& \multirow{2}{*}{Qwen 2.5 Coder 32B} & \multirow{2}{*}{AST Norm.} & Baseline & 1.56$\times$10$^{-5}$ & 0.673 & 36.3 & 46.0 & 17.7 \\
 \cline{4-9}
-& & & System & 9.28$\times$10$^{-5}$ & 0.725 & 19.3 & 73.3 & 7.3 \\
+& & & System & 1.40$\times$10$^{-5}$ & 0.675 & 37.3 & 44.7 & 18.0 \\
 \cline{4-9}
-& & & Style-aware & 1.98$\times$10$^{-4}$ & 0.711 & 19.7 & 72.3 & 8.0 \\
+& & & Style-aware & 4.58$\times$10$^{-6}$ & 0.673 & 38.3 & 43.0 & 18.7 \\
 \cline{2-9}
-& \multirow{2}{*}{Qwen 2.5 Coder 32B} & \multirow{2}{*}{AST Norm.} & System & 5.72$\times$10$^{-7}$ & 0.810 & 17.0 & 79.0 & 4.0 \\
+& \multirow{2}{*}{Qwen 2.5 Coder 32B} & \multirow{2}{*}{CodeBLEU} & Baseline & 1.81$\times$10$^{-6}$ & 0.678 & 39.3 & 42.0 & 18.7 \\
 \cline{4-9}
-& & & Style-aware & - & - & - & - & - \\
+& & & System & 1.26$\times$10$^{-6}$ & 0.685 & 42.0 & 38.7 & 19.3 \\
+\cline{4-9}
+& & & Style-aware & 3.53$\times$10$^{-8}$ & 0.702 & 41.7 & 40.7 & 17.7 \\
 \hline
-\multirow{2}{*}{GPT-4o} & \multirow{2}{*}{Qwen 2.5 Coder 32B} & \multirow{2}{*}{CodeBLEU} & Baseline & 1.75$\times$10$^{-4}$ & 0.404 & 30.0 & 25.7 & 44.3 \\
+\multirow{2}{*}{GPT-4o} & \multirow{2}{*}{Qwen 2.5 Coder 32B} & \multirow{2}{*}{CodeBLEU} & Baseline & 1.74$\times$10$^{-4}$ & 0.404 & 30.0 & 25.7 & 44.3 \\
 \cline{4-9}
 & & & System & - & - & - & - & - \\
 \cline{4-9}
@@ -399,7 +524,7 @@ Table \ref{tab:statistical-results} presents the comprehensive statistical analy
 }
 \end{table}
 
-The statistical results in Table \ref{tab:statistical-results} reveal several key patterns. Codestral 2501 demonstrates overwhelming dominance in CodeBLEU performance, winning 39-55\% of comparisons against other models while losing only 18-22\%. This consistent superiority is reflected in extremely low p-values (as low as 3.62×10⁻²⁰) and large effect sizes (0.679-0.741), indicating that these differences are not only statistically significant but also practically meaningful.
+The statistical results in Table \ref{tab:statistical-results} reveal several key patterns. Codestral 2501 demonstrates overwhelming dominance across both AST normalized and CodeBLEU metrics, winning 36-55\% of comparisons against other models while losing only 17-22\%. This consistent superiority is reflected in extremely low p-values (as low as 4.19×10⁻²³) and large effect sizes (0.673-0.738), indicating that these differences are not only statistically significant but also practically meaningful.
 
-The win/loss percentages provide additional insights into model performance: Codestral 2501's high win rates (39-55\%) against specialized models like Qwen 2.5 Coder 32B and GPT-4o suggest that its architectural advantages extend beyond simple statistical significance to consistent practical superiority. Claude 3.5 Sonnet's poor performance is evident in its low win rates (19-33\%) across all comparisons, while GPT-4o shows intermediate performance with win rates of 30-48\% depending on the comparison.
+The win/loss percentages provide additional insights into model performance: Codestral 2501's high win rates (36-55\%) against specialized models like Qwen 2.5 Coder 32B and GPT-4o suggest that its architectural advantages extend beyond simple statistical significance to consistent practical superiority. Claude 3.5 Sonnet's poor performance is evident in its low win rates (15-27\%) across all comparisons, while GPT-4o shows intermediate performance with win rates of 23-36\% depending on the comparison. Qwen 2.5 Coder 32B demonstrates competitive performance with win rates of 22-27\% against Claude 3.5 Sonnet and maintains competitive performance against GPT-4o.
 
