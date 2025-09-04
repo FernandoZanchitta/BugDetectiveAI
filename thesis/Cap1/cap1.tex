@@ -1,20 +1,18 @@
-\section{Introduction}
+This chapter covers the motivation for this thesis, along with research goals, research
+questions, and a list of contributions.
+
+\section{Motivation}
 %todo Brief overview of APR
+Modern software systems continuously evolve with inevitable bugs due to feature deprecation, new features added, and refactoring. These bugs are widely known as a destructive problem, generating costs up to trillions of dollars every year.%todo: \cite{todo}.
 
-Sistemas modernos de software continuamente evoluem com bugs inevitáveis devido a deprecação de features, adição de novas funcionalidades, e refatoração. Esses bugs são amplamente reconhecidos como um problema destrutivo, gerando custos na casa de Trilhões de dólares anualmente \ref(todo).
+Bugs and errors in code are a recurring problem in the software industry, leading to collateral effects of multiple sizes. %\cite{todo} 
+As a consequence, there is a substantial amount of time spent only to solve these problems in an efficient way with litle or no human intervention.
 
-Erros e bugs em códigos são um problema recorrente na indústria de software, e podem trazer efeitos colaterais das mais diversas ordens de grandeza \ref(todo). Consequentemente, existe um esforço oneroso para que engenheiros de software tratem esses problemas de forma eficiente e adequada.
-
-Automatic Program Repair (APR) é um subcampo da programação voltado para reparação de erros e vulnerabilidades de códigos, programas ou sistemas de forma estruturada e automatizada. Essa área de estudo foca no conjunto de técnicas que possibilitam a correção desses problemas de forma eficiente e adequada. 
-
-Não importa qual método de identificação e correção de bugs é utilizado, o objetivo é encontrar um patch que mude o programa apropriadamente de forma a corrigir o problema.
-
-Na última década métodos de APR tem sido extensivamente pesquisados, e podem ser categorizados em grupos, incluindo:
-\begin{itemize}
-    \item Métodos heuristics.
-    \item Métodos Baseados em constraints.
-    \item Métodos Baseados em patterns.
-\end{itemize}
+In APR research of the last decade, most of traditional methods include search-based, constraint-based, and template-based approaches.%todo cite
+These studies led to the development of methods such of SimFix, VarFix, SearchRepair, and Tfix.
+More recent studies use machine learning and deep learning techniques were employed to improve program repair tasks.
+% cite
+With the growth of Large Language Models (LLMs), the Software Engineering area was significantly transformed, specially due to Code LLMs. These models are either pretrained or finetuned on programming languages, directly affecting areas such as code summarization, code generation, bug detection and also APR.
 
 
 %todo Challenges in traditional methods
@@ -31,3 +29,14 @@ Na última década métodos de APR tem sido extensivamente pesquisados, e podem 
 \section{Objective and Research Questions} 
  %todo Change to Objective and Research Questions
 %todo Objective of the thesis
+Esse projeto busca estudar diferentes técnicas de prompt engineering, em realizar tarefas de Patch Correction dentro do campo de Automated Program Repair (APR).
+
+
+\textbf{RQ1: Comparison between specialized code models vs general-purpose models?}
+
+\textbf{RQ2: Does style based prompt improve the overall effectiveness of responses?}
+
+\textbf{RQ3: Does system prompt improve performances of APR tasks?}
+
+
+\section{Contribution}
