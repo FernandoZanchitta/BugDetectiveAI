@@ -288,7 +288,8 @@ def compute_and_store_metrics(
         print(f"Processing {response_col}...")
         
         # Check if metrics columns already exist for this response column
-        existing_columns = [f"{response_col}_{metric}" for metric in metric_names]
+        clean_response_col = response_col.replace("response_", "")
+        existing_columns = [f"metric_{clean_response_col}_{metric}" for metric in metric_names]
         columns_exist = all(col in result_df.columns for col in existing_columns)
         
         if columns_exist and not force_recompute:
