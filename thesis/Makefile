@@ -16,7 +16,7 @@ LATEXMK_FLAGS = -pdf -synctex=1 --shell-escape -auxdir=$(TEMP_DIR) -outdir=$(OUT
 all: complete
 
 complete:
-	latexmk -pdflatex="$(TEX)" $(LATEXMK_FLAGS) $(FILE).tex
+	/Library/TeX/texbin/latexmk -pdflatex="$(TEX)" $(LATEXMK_FLAGS) $(FILE).tex
 
 pdf:
 	$(TEX) $(TEX_FLAGS) $(FILE).tex
