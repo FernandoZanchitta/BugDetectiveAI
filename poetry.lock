@@ -2898,7 +2898,20 @@ files = [
     {file = "widgetsnbextension-4.0.13.tar.gz", hash = "sha256:ffcb67bc9febd10234a362795f643927f4e0c05d9342c727b65d2384f8feacb6"},
 ]
 
+[[package]]
+name = "zss"
+version = "1.2.0"
+description = "Tree edit distance using the Zhang Shasha algorithm"
+optional = false
+python-versions = "*"
+files = [
+    {file = "zss-1.2.0.tar.gz", hash = "sha256:07bb937441929ccb82961f4f7b80fbce9e2b20d0e46ddcbcbc1fcb094f585b50"},
+]
+
+[package.dependencies]
+six = "*"
+
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "77e04708c26c03ab5601cb6bb1156a781c719b351deafbb41d1fd169d7c2a3aa"
+content-hash = "52fbcd06c43aa5a7c59448ca0374831c74bb9bbba8dc0d0ac2f30a4233f66565"

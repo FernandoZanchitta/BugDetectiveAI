@@ -114,7 +114,7 @@ Qwen 2.5 Coder 32B Instruct & \$0.05 & \$0.20 \\ \hline
 
 To test the model's sensitivity to the prompt's instructions, all prompts were formatted 
 using a consistent template, shown in Listing \ref{lst:prompt-template}. This structure ensures 
-that each model receives the context—buggy code and traceback error—in a clear, delimited 
+that each model receives the context (buggy code and traceback error) in a clear, delimited 
 format, and is explicitly asked to return only the corrected code.
 
 % The 'figure' environment helps manage the placement and captioning of the listing.
@@ -212,23 +212,25 @@ For each response, the following evaluation metrics were computed: AST similarit
 
 The evaluation framework employs multiple complementary metrics to assess the quality of generated code repairs across different dimensions: structural similarity, semantic preservation, and syntactic correctness. This multi-faceted approach ensures comprehensive assessment of LLM performance in automated program repair tasks.
 
-\subsection{Structural Similarity Metrics}
+\subsection{Text Similarity Metrics}
 
-\subsubsection{AST Score}
-The Abstract Syntax Tree (AST) score measures the structural similarity between the generated repair code and the ground truth correction by comparing their parsed trees. This metric is particularly relevant for our type of problem since it captures the fundamental program structure independently of formatting, variable names, or comment variations.
+Both AST-based metrics described below are text similarity scores computed on the string representations of Abstract Syntax Trees, rather than direct tree structure comparisons.
+
+\subsubsection{AST Text Score}
+The Abstract Syntax Tree (AST) \cite{4299919} score measures the structural similarity between the generated repair code and the ground truth correction by comparing the text representations of their parsed trees. This metric is particularly relevant for our type of problem since it captures the fundamental program structure independently of formatting, variable names, or comment variations.
 
 The AST score is computed by:
 \begin{enumerate}
     \item Parsing both the generated code and ground truth into their respective AST representations;
-    \item Computing the tree edit distance using the Zhang-Shasha algorithm \cite{zhang1989simple};
-    \item Normalizing the distance by the maximum tree size to obtain a similarity score in the range [0,1];
+    \item Converting the ASTs to their string representations using \texttt{ast.dump()};
+    \item Computing the text similarity between these string representations using Sequence Matcher;
 \end{enumerate}
 
 A score of 1.0 indicates perfect structural similarity, while 0.0 represents completely different program structures. This metric is sensitive to control flow changes, function structure modifications, and overall program architecture, making it essential for evaluating whether the LLM has preserved the intended program logic.
 
-\subsubsection{AST Normalized Score}
+\subsubsection{AST Normalized Text Score}
 The AST normalized score addresses a fundamental limitation of the raw AST score by normalizing identifiers and constants to focus purely on structural similarity. This metric is particularly valuable in automated program repair as it distinguishes between structural changes and mere naming variations, which are often irrelevant to the actual repair quality.
-% TODO: Confirm this
+
 The normalization process involves:
 \begin{enumerate}
     \item Parsing both the generated code and ground truth into AST representations
@@ -239,7 +241,8 @@ The normalization process involves:
             \item Replaces class names with normalized identifiers (\texttt{\_class\_1}, \texttt{\_class\_2}, etc.)
             \item Replaces literal constants with a placeholder (\texttt{\_const\_})
         \end{itemize}
-    \item Computing similarity between the normalized AST representations using sequence matching
+    \item Converting the normalized ASTs to their string representations using \texttt{ast.dump()}
+    \item Computing text similarity between the normalized AST string representations using Sequence Matcher
 \end{enumerate}
 
 This approach is crucial for automated program repair evaluation because it focuses on the essential structural logic rather than superficial naming differences. For example, a repair that changes variable names from \texttt{user\_input} to \texttt{input\_data} would receive a perfect normalized AST score, while maintaining the same structural integrity. This metric is particularly valuable for identifying whether LLMs are generating repairs that preserve the intended program logic and control flow, regardless of identifier choices.
@@ -348,7 +351,9 @@ Module(
 As shown in Figure \ref{fig:ast-comparison}, the AST normalized representation replaces specific identifiers like \texttt{check\_status}, \texttt{any}, \texttt{monster}, \texttt{status\_name}, and \texttt{t} with generic placeholders (\texttt{\_func\_1}, \texttt{\_var\_1}, \texttt{\_var\_4}, \texttt{\_var\_6}, and \texttt{\_var\_2} respectively). This normalization allows the metric to focus purely on structural similarity, ignoring naming variations that are irrelevant to the actual repair quality.
 
 The AST normalized score provides a more robust assessment of repair quality by isolating structural changes from naming conventions, making it essential for evaluating whether the core program architecture and logic flow have been preserved in the generated repair.
+\subsection{Structural Similarity Metrics}
 
+\subsubsection{Syntax Match}
 \subsection{Dataflow Preservation}
 
 \subsubsection{Dataflow}

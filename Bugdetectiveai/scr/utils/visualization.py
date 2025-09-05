@@ -69,42 +69,42 @@ def plot_column_distribution(
 
 
 def _plot_metric_histograms(
-    metrics_dicts, labels, colors, available_metrics, title_prefix=None
+  metrics_dicts, labels, colors, available_metrics, title_prefix=None
 ):
-    """
-    Helper to plot histograms for each metric.
-    metrics_dicts: list of dicts, each mapping metric name to list of values
-    labels: list of legend labels for each dict
-    colors: list of colors for each dict
-    available_metrics: list of metric names
-    title_prefix: optional string to prefix each subplot title
-    """
-    n_metrics = len(available_metrics)
-    n_cols = 3
-    n_rows = (n_metrics + n_cols - 1) // n_cols
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(18, 6 * n_rows))
-    if n_rows == 1:
-        axes = axes.reshape(1, -1)
-    for i, metric in enumerate(available_metrics):
-        row = i // n_cols
-        col = i % n_cols
-        for metric_dict, label, color in zip(metrics_dicts, labels, colors):
-            axes[row, col].hist(
-                metric_dict[metric], bins=20, alpha=0.7, label=label, color=color
-            )
-        axes[row, col].set_xlabel(metric.replace("_", " ").title())
-        axes[row, col].set_ylabel("Frequency")
-        title = f"{metric.replace('_', ' ').title()} Comparison"
-        if title_prefix:
-            title = f"{title_prefix} {title}"
-        axes[row, col].set_title(title)
-        axes[row, col].legend()
-    for i in range(n_metrics, n_rows * n_cols):
-        row = i // n_cols
-        col = i % n_cols
-        axes[row, col].set_visible(False)
-    plt.tight_layout()
-    plt.show()
+  """
+  Helper to plot histograms for each metric.
+  metrics_dicts: list of dicts, each mapping metric name to list of values
+  labels: list of legend labels for each dict
+  colors: list of colors for each dict
+  available_metrics: list of metric names
+  title_prefix: optional string to prefix each subplot title
+  """
+  n_metrics = len(available_metrics)
+  n_cols = 3
+  n_rows = (n_metrics + n_cols - 1) // n_cols
+  fig, axes = plt.subplots(n_rows, n_cols, figsize=(18, 6 * n_rows))
+  if n_rows == 1:
+    axes = axes.reshape(1, -1)
+  for i, metric in enumerate(available_metrics):
+    row = i // n_cols
+    col = i % n_cols
+    for metric_dict, label, color in zip(metrics_dicts, labels, colors):
+      axes[row, col].hist(
+        metric_dict[metric], bins=20, alpha=0.7, label=label, color=color
+      )
+    axes[row, col].set_xlabel(metric.replace("_", " ").title())
+    axes[row, col].set_ylabel("Frequency")
+    title = f"{metric.replace('_', ' ').title()} Comparison"
+    if title_prefix:
+      title = f"{title_prefix} {title}"
+    axes[row, col].set_title(title, fontsize=13)
+    axes[row, col].legend()
+  for i in range(n_metrics, n_rows * n_cols):
+    row = i // n_cols
+    col = i % n_cols
+    axes[row, col].set_visible(False)
+  plt.tight_layout()
+  plt.show()
 
 
 def _print_metric_statistics(metrics_dicts, labels, available_metrics, stat_title):
